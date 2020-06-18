@@ -1,1 +1,36 @@
 Repository for LCLS2 timing pattern data.  Includes tools for simulating, validating, and programming timing patterns.
+
+patterns: Directory of available patterns.  Includes
+
+  allow_d[0-13]_pc[0-..].py - allow sequence per destination per power class
+  d[0-13].py                - destination beam requests
+  c[0-16].py                - control requests
+  description.txt           - textual description
+  validation.dat            - destn/control rates over 1 TPG second for each set of conditions (PC*dest)
+
+pcdef.py - python dictionary of power class defining parameters
+
+tools: python utilities for simulation, execution, validation
+
+  simulation:
+    individual:
+      calculate statistics for validation { 1sec sum, min spacing, max spacing }
+
+    pattern:
+      read pattern directory and simulate across all inputs
+      outputs are { beam requests, PC0[Allowed,Generated], PC1[], ... } per destination
+        gets written to "pattern/validation.dat"
+        plots for timeslot range, PC settings per destination
+    visualization:
+      inputs are { timeslot mode [AC/Fixed], timeslot range }
+
+  execution:
+    GUI tells HLA to execute pattern which includes entire subdirectory of sequences
+    maps to facility modes (stoppers in/out)
+
+  validation:
+    other IOC executing on special node takes validation.dat and confirms for each
+      destination when PC does not change
+    errors can be trapped and archived
+      { timestamp, pulseid, fixed/ac rates, beam request, mps status }
+
