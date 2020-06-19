@@ -5,6 +5,7 @@ import argparse
 import pprint
 import json
 import os
+import time
 
 import sys
 sys.path.insert(0,'.')
@@ -63,7 +64,7 @@ class SeqUser:
 
         self.stats = []
         for i in range(len(destn)):
-            self.stats.append( {'sum':0,'min':910000,'max':0,'last':-1} )
+            self.stats.append( {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1} )
 
     def color(self,dest):
         x = float(dest)/float(len(destn)-1)
@@ -134,6 +135,7 @@ class SeqUser:
                 frame    = int(engine.frame)
                 request  = int(engine.request)
                 instrset = seqdict['request'][i]
+                amask    = seqdict['allowmask'][i]
 
                 if self.verbose:
                     print('Engine {}:  frame {}  request {:x}'.format(i,frame,request))
@@ -154,17 +156,19 @@ class SeqUser:
                         if request != 0:
                             requests |= (1<<i)
 
-                            if allow&seqdict['allowmask'][i]==seqdict['allowmask'][i]:
+                            if allow&amask==amask:
                                 arequest  = i
 
                                 self.stats[i]['sum'] += 1
                                 if self.stats[i]['last']>=0:
-                                    diff = frame-self.stats[i]['last']
-                                    if diff < self.stats[i]['min']:
+                                    diff = frame-slast
+                                    if diff < self.stats[i]['min'] or self.stats[i]['min']<0:
                                         self.stats[i]['min']=diff
                                     if diff > self.stats[i]['max']:
                                         self.stats[i]['max']=diff
                                 self.stats[i]['last']=frame
+                                if self.stats[i]['first']<0:
+                                    self.stats[i]['first']=frame
 
                                 if frame >= self.start and frame < self.stop:
                                     self.xdata[i].append(frame)
@@ -220,14 +224,8 @@ def pcGen():
                 break
         yield(d)
 
-def main():
-    parser = argparse.ArgumentParser(description='simple sequence plotting gui')
-    parser.add_argument("--pattern", required=True, help="pattern to plot")
-    parser.add_argument("--start", default=  0, type=int, help="beginning timeslot")
-    parser.add_argument("--stop" , default=200, type=int, help="ending timeslot")
-    parser.add_argument("--mode" , default='CW', help="timeslot mode [CW,AC]")
-    args = parser.parse_args()
-    
+def seqsim(args):
+
     seq = SeqUser(acmode=(args.mode=='AC'),start=args.start,stop=args.stop)
 
     pp = pprint.PrettyPrinter(indent=3)
@@ -257,13 +255,23 @@ def main():
 
         #pp.pprint('seqdict[\'request\'] {:}'.format(seqdict['request']))
         #pp.pprint('seqdict[\'allow\'] {:}'.format(seqdict['allow']))
+        t0 = time.clock()
         seq.execute(seqdict)
+        t1 = time.clock()
+        print('-- execute {} seconds'.format(t1-t0))
         stats.append({'pc':pc.copy(),'stats':seq.stats})
 
     fname = args.pattern+'/validation.dat'
     open(fname,mode='w').write(json.dumps(stats))
 
-    seq.show_plots()
+    return seq
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='simple sequence plotting gui')
+    parser.add_argument("--pattern", required=True, help="pattern to plot")
+    parser.add_argument("--start", default=  0, type=int, help="beginning timeslot")
+    parser.add_argument("--stop" , default=200, type=int, help="ending timeslot")
+    parser.add_argument("--mode" , default='CW', help="timeslot mode [CW,AC]")
+    args = parser.parse_args()
+    
+    seqsim(args).show_plots()

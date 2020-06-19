@@ -2,11 +2,15 @@ Repository for LCLS2 timing pattern data.  Includes tools for simulating, valida
 
 patterns: Directory of available patterns.  Includes
 
-  allow_d[0-13]_pc[0-..].py - allow sequence per destination per power class
+  a[0-..]_d[0-13].py        - allow sequence per destination
   d[0-13].py                - destination beam requests
   c[0-16].py                - control requests
   description.txt           - textual description
-  validation.dat            - destn/control rates over 1 TPG second for each set of conditions (PC*dest)
+  validation.dat            - destn/control statistics
+  			      sum over 1 TPG second for each set of conditions (PC*dest)
+			      first/last bucket requested
+			      min/max interval between requests
+			      max requests within each PC window** (still need to add this, used in PC calc for variable charge)
 
 pcdef.py - python dictionary of power class defining parameters
 
@@ -26,7 +30,8 @@ tools: python utilities for simulation, execution, validation
 
   execution:
     GUI tells HLA to execute pattern which includes entire subdirectory of sequences
-    maps to facility modes (stoppers in/out)
+    maps to facility modes (destn)
+    given charge, determine PC of allow table sequences
 
   validation:
     other IOC executing on special node takes validation.dat and confirms for each

@@ -28,13 +28,15 @@ class TrainGenerator(object):
         return w
 
     def wait(self, intv):
+        if intv <= 0:
+            raise ValueError
         if intv >= 2048:
             self.f.write('iinstr = len(instrset)\n')
             #  Wait for 2048 intervals
             self.f.write('instrset.append( FixedRateSync(marker=0, occ=2048) )\n')
             if intv >= 4096:
                 #  Branch conditionally to previous instruction
-                self.f.write('instrset.append( Branch.conditional(line=iinstr, counter=3, value={} )\n'.format(int(intv/2048)-1))
+                self.f.write('instrset.append( Branch.conditional(line=iinstr, counter=3, value={}) )\n'.format(int(intv/2048)-1))
 
         rint = intv%2048
         if rint:
@@ -48,7 +50,18 @@ class TrainGenerator(object):
         intv = self.args.train_spacing
         if nint==0:
             nint = 910000/intv
-        print('generating {} trains with {} bucket spacing'.format(nint,intv))
+
+        if nint>1:
+            print('Generating {} trains with {} train spacing'.
+                  format(nint,intv))
+        if self.args.bunches_per_train>1:
+            print('\tcontaining {} bunches with {} spacing'.
+                  format(self.args.bunches_per_train,
+                         self.args.bunch_spacing))
+
+        #  Initial validation
+        if (nint-1)*intv+(self.args.bunches_per_train-1)*self.args.bunch_spacing) >= 910000:
+            raise ValueError
 
         rint = nint % 256
         if rint:
