@@ -32,6 +32,10 @@ tools: python utilities for simulation, execution, validation
     GUI tells HLA to execute pattern which includes entire subdirectory of sequences
     maps to facility modes (destn)
     given charge, determine PC of allow table sequences
+      program allow table [ register array of sub-sequence start addr and pattern PC,
+      	      	            indexed by MPS asserted PC ]
+      requires min separation and max bunches within PC window for each allow sequence
+      (from simulation)
 
   validation:
     other IOC executing on special node takes validation.dat and confirms for each
