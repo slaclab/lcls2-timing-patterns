@@ -14,7 +14,9 @@ patterns: Directory of available patterns.  Includes
 
 pcdef.py - python dictionary of power class defining parameters
 
-tools: python utilities for simulation, execution, validation
+tools: python utilities for generation, simulation, execution, validation
+
+  generation:
 
   simulation:
     individual:
@@ -43,3 +45,19 @@ tools: python utilities for simulation, execution, validation
     errors can be trapped and archived
       { timestamp, pulseid, fixed/ac rates, beam request, mps status }
 
+  scripts:
+    patterngenerator.py --output <dir>
+      Generates destination programming sequences for patterns described within
+      a dictionary in patterngenerator.py.  Products are placed in <dir>/<pattern_name>/.
+
+    patternprogrammer.py --pattern <pattern subdirectory> --pv <TPG PV base>
+      Programs all sequences for the pattern and executes
+
+    seqplot.py --start <bucket> --stop <bucket> <sequence.py>
+      PyQt plot of (trigger bits vs) buckets populated
+
+    seqprogram.py <sequence.py> <TPG sequence engine PV>
+      Programs an individual sequence engine
+
+    seqsim.py --pattern <pattern subdirectory> --start <bucket> --stop <bucket> --mode <CW/AC>
+      Simulate 

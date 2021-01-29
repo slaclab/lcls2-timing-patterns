@@ -166,6 +166,7 @@ class SeqUser:
                                         self.stats[i]['min']=diff
                                     if diff > self.stats[i]['max']:
                                         self.stats[i]['max']=diff
+                                slast = frame
                                 self.stats[i]['last']=frame
                                 if self.stats[i]['first']<0:
                                     self.stats[i]['first']=frame
