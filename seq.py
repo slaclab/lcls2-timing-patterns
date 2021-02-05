@@ -21,12 +21,15 @@ class FixedRateSync(Instruction):
 
     opcode = 0
 
-    def __init__(self, marker, occ):
+    def __init__(self, marker, occ=0):
         super(FixedRateSync, self).__init__( (self.opcode, marker, occ) )
 
     def _word(self):
         return int((2<<29) | ((self.args[1]&0xf)<<16) | (self.args[2]&0xfff))
     
+    def _schedule(self):
+        return (0<<14) | (self.args[1]&0xf)
+
     def print_(self):
         return 'FixedRateSync({}) # occ({})'.format(fixedRates[self.args[1]],self.args[2])
 
@@ -43,11 +46,14 @@ class ACRateSync(Instruction):
 
     opcode = 1
 
-    def __init__(self, timeslotm, marker, occ):
+    def __init__(self, timeslotm, marker, occ=0):
         super(ACRateSync, self).__init__( (self.opcode, timeslotm, marker, occ) )
 
     def _word(self):
         return int((3<<29) | ((self.args[1]&0x3f)<<23) | ((self.args[2]&0xf)<<16) | (self.args[3]&0xfff))
+
+    def _schedule(self):
+        return (1<<14) | ((self.args[1]&0x3f)<<3) | (self.marker&0x7)
 
     def print_(self):
         return 'ACRateSync({}/0x{:x}) # occ({})'.format(acRates[self.args[2]],self.args[1],self.args[3])

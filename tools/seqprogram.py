@@ -1,8 +1,36 @@
 import time
-from psdaq.seq.seq import *
-from psdaq.cas.pvedit import *
+#from psdaq.seq.seq import *
+from seq import *
+#from psdaq.cas.pvedit import *
+from p4p.client.thread import Context
 from threading import Lock
 import argparse
+
+class Pv:
+    def __init__(self, pvname, callback=None):
+        self.pvname = pvname
+        self.__value__ = None
+        if callback:
+            def monitor_cb(newval):
+                self.__value__ = newval.raw.value
+                callback(err=None)
+            self.subscription = pvactx.monitor(self.pvname, monitor_cb)
+
+    def get(self):
+        self.__value__ = pvactx.get(self.pvname).raw.value
+        return self.__value__
+
+    def put(self, newval, wait=None):
+        ret =  pvactx.put(self.pvname, newval, wait=wait)
+        self.__value__ = newval
+        return ret
+
+    def monitor(self, callback):
+        if callback:
+            def monitor_cb(newval):
+                self.__value__ = newval.raw.value
+                callback(err=None)
+            self.subscription = pvactx.monitor(self.pvname, monitor_cb)
 
 class SeqUser:
     def __init__(self, base):
@@ -17,7 +45,9 @@ class SeqUser:
         self.seqr     = Pv(prefix+':RMVSEQ')
         self.insert   = Pv(prefix+':INS')
         self.idxrun   = Pv(prefix+':RUNIDX')
-        self.start    = Pv(prefix+':SCHEDRESET')
+#        self.clsrun   = Pv(prefix+':RUNCLASS')
+        self.start    = Pv(prefix+':SCHEDRESETFLAG')
+#        self.syncstart= Pv(prefix+':SCHEDRESETSYNC')
         self.reset    = Pv(prefix+':FORCERESET')
         self.running  = Pv(prefix+':RUNNING', self.changed)
         self._idx     = 0
@@ -34,8 +64,16 @@ class SeqUser:
         self.reset .put(1)
         self.reset .put(0)
 
+    def idx_list(self):
+        r = []
+        idx = self.idxseq.get()
+        while (idx>0):
+            r.append(idx)
+            idx = self.idxseq.get()
+        return r
+
+    # Remove all existing subsequences
     def clean(self):
-        # Remove existing sub sequences
         ridx = -1
         print( 'Remove %d'%ridx)
         if ridx < 0:
@@ -53,6 +91,7 @@ class SeqUser:
             self.seqr.put(1)
             self.seqr.put(0)
 
+    #  Load new sequence and return subsequence index
     def load(self, title, instrset, descset=None):
         self.desc.put(title)
 
@@ -92,7 +131,9 @@ class SeqUser:
             self.seqbname.put(descset)
 
         self._idx = idx
+        return idx
 
+    #  Start sequence immediately
     def begin(self, wait=False):
         self.idxrun.put(self._idx)
         self.start .put(0)
@@ -102,12 +143,49 @@ class SeqUser:
             self.lock= Lock()
             self.lock.acquire()
 
+    #  Schedule sequence to be started on a trigger (defaults to 1Hz fixed rate)
+    def schedule(self, subseq=-1, subseqclass=0, sync=FixedRateSync(6)):
+        idx = subseq if subseq > 1 else self._idx
+        self.idxrun.put(idx)
+        self.clsrun.put(subseqclass)
+        self.syncstart(sync._schedule())
+        self.start.put(1)
+
+    def schedule_allow_reload(self, sync=FixedRateSync(6)):
+        self.idxrun.put(0)
+        self.clsrun.put(15)  # Forces reload of subseq for current MPS state
+        self.syncstart(sync._schedule())
+        self.start.put(1)
+
+    #  Stop sequence, clean out all subsequences, load new sequence, and start
     def execute(self, title, instrset, descset=None):
         self.insert.put(0)
         self.stop ()
         self.clean()
         self.load (title,instrset,descset)
         self.begin()
+
+class AlwUser:
+    def __init__(self, base):
+        prefix = base
+        self.tbl = {}
+        for i in range(16):
+            self.tbl[i] = {'idx'   :Pv(prefix+':MPS{:02d}IDX'%i),
+                           'start' :Pv(prefix+':MPS{:02d}START'%i),
+                           'pclass':Pv(prefix+':MPS{:02d}PCLASS'%i)}
+        self.latch    = Pv(prefix+':MPSLATCH')
+        self.state    = Pv(prefix+':MPSSTATE')
+        self.setstate = Pv(prefix+':MPSSETSTATE')
+        self.lock     = None
+
+    def safe(self):
+        state = self.state.get()
+        for i in range(14):
+            self.idx   .set(0)
+            self.start .set(0)
+            self.pclass.set(0)
+        self.setstate.set(0)
+        return state
 
 def main():
     parser = argparse.ArgumentParser(description='sequence pva programming')

@@ -1,8 +1,6 @@
 import pyqtgraph as pg
 import numpy
 import argparse
-#from .seq import *
-#import seq
 
 f=None
 verbose=False
@@ -116,7 +114,10 @@ class SeqUser:
         if engine.modes == 3:
             print(bcolors.WARNING + "Found both fixed-rate-sync and ac-rate-sync instructions." + bcolors.ENDC)
 
-        input(bcolors.OKGREEN+'Press ENTER to exit'+bcolors.ENDC)
+        try:
+            input(bcolors.OKGREEN+'Press ENTER to exit'+bcolors.ENDC)
+        except:
+            pass
 
 def main():
     parser = argparse.ArgumentParser(description='simple sequence plotting gui')
