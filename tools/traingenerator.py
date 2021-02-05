@@ -60,7 +60,7 @@ class TrainGenerator(object):
                          self.args.bunch_spacing))
 
         #  Initial validation
-        if (nint-1)*intv+(self.args.bunches_per_train-1)*self.args.bunch_spacing) >= 910000:
+        if ((nint-1)*intv+(self.args.bunches_per_train-1)*self.args.bunch_spacing) >= 910000:
             raise ValueError
 
         rint = nint % 256

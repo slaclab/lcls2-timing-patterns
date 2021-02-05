@@ -23,6 +23,8 @@ def main():
     for i in range(2,21):
         patterns.append( {'name':'100b_{}'.format(i), 'destn':0, 'bunch_spacing':i, 'bunches_per_train':100, 'repeat':False } )
 
+#    patterns = [{'name':'2b_100'  , 'destn':0, 'bunch_spacing':100  , 'bunches_per_train':200   , 'repeat':False }]
+
     TrainArgs = collections.namedtuple('TrainArgs',['output','train_spacing','trains_per_second','bunch_spacing','bunches_per_train','repeat'])
     targs = {}
     SimArgs = collections.namedtuple('SimArgs',['pattern','start','stop','mode'])
@@ -42,7 +44,7 @@ def main():
 
         sargs['pattern'] = '{}/{}'.format(args.output,p['name'])
         sargs['start'  ] = 0
-        sargs['stop'   ] = 0
+        sargs['stop'   ] = 910000  # controls beam.py output
         sargs['mode'   ] = 'CW'
         seqsim(SimArgs(**sargs))
 

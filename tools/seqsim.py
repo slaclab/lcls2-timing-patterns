@@ -58,10 +58,6 @@ class SeqUser:
 
         self.xdata = []
         self.ydata = []
-        for i in range(len(destn)):
-            self.xdata.append([])
-            self.ydata.append([])
-
         self.stats = []
         for i in range(len(destn)):
             self.stats.append( {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1} )
@@ -172,8 +168,8 @@ class SeqUser:
                                     self.stats[i]['first']=frame
 
                                 if frame >= self.start and frame < self.stop:
-                                    self.xdata[i].append(frame)
-                                    self.ydata[i].append(i)
+                                    self.xdata.append(frame)
+                                    self.ydata.append(i)
 
                         if engine.done:
                             engine.request = 0
@@ -197,9 +193,9 @@ class SeqUser:
 
     def show_plots(self):
         q = self.win.addPlot(title='Destn')
-        for i in range(len(destn)):
-            q.plot(self.xdata[i],self.ydata[i],pen=None,symbolPen=None,
-                   symbolBrush=self.color(i), symbol='s', pxMode=True, size=2)
+        q.plot(self.xdata,self.ydata,pen=None,symbolPen=None,
+               #symbolBrush=self.color(i), symbol='s', pxMode=True, size=2)
+               symbol='s', pxMode=True, size=2)
 
         self.app.processEvents()
 
@@ -232,6 +228,7 @@ def seqsim(args):
     pp = pprint.PrettyPrinter(indent=3)
 
     stats = []
+    beam  = []
     for pc in pcGen():
         seqdict = {}
         seqdict['request'  ] = []
@@ -260,8 +257,11 @@ def seqsim(args):
         seq.execute(seqdict)
         t1 = time.clock()
         print('-- execute {} seconds'.format(t1-t0))
+        beam.append({'pc_by_dest':pc.copy(), 'dest_by_bucket':(seq.xdata,seq.ydata)})
         stats.append({'pc':pc.copy(),'stats':seq.stats})
 
+    fname = args.pattern+'/seqsim.dat'
+    open(fname,mode='w').write(json.dumps(beam))
     fname = args.pattern+'/validation.dat'
     open(fname,mode='w').write(json.dumps(stats))
 
