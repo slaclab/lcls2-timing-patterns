@@ -1,8 +1,4 @@
-from seq import *
+from tools.seq import *
 
 instrset = []
-
-#  Loop here indefinitely
-b0 = len(instrset)
-instrset.append(Branch.unconditional(line=b0))
-   
+instrset.append( Branch.unconditional(0) )

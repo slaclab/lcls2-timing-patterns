@@ -1,3 +1,5 @@
+import json
+
 verbose = False
 #verbose = True
 
@@ -22,6 +24,8 @@ class FixedRateSync(Instruction):
     opcode = 0
 
     def __init__(self, marker, occ=0):
+        if occ > 0xfff:
+            raise ValueError('FixedRateSync called with occ={}'.format(occ))
         super(FixedRateSync, self).__init__( (self.opcode, marker, occ) )
 
     def _word(self):
@@ -47,6 +51,8 @@ class ACRateSync(Instruction):
     opcode = 1
 
     def __init__(self, timeslotm, marker, occ=0):
+        if occ > 0xfff:
+            raise ValueError('ACRateSync called with occ={}'.format(occ))
         super(ACRateSync, self).__init__( (self.opcode, timeslotm, marker, occ) )
 
     def _word(self):
@@ -93,6 +99,11 @@ class Branch(Instruction):
 
     @classmethod
     def conditional(cls, line, counter, value):
+        if value == 0:
+            #  sequence_engine_yaml.cc uses test_value to distinguish conditional/unconditional
+            raise ValueError('BranchConditional called with value=0, evokes bug in sequence_engine_yaml.cc')
+        if value > 0xff:
+            raise ValueError('BranchConditional called with value={}'.format(value))
         return cls((cls.opcode, line, counter, value))
 
     def address(self):

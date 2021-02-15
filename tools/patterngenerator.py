@@ -1,6 +1,25 @@
 import collections
 from tools.traingenerator import *
+from tools.periodicgenerator import *
 from tools.seqsim import *
+from tools.seq import *
+
+#  Convert .py to .json file for faster loading
+def tojson(fname):
+    cc = {'title'   :'TITLE', 
+          'descset' :None, 
+          'instrset':None, 
+          'crc'     :None}
+    exec(compile(open(fname).read(), fname, 'exec'), {}, cc)
+    encoding = [len(cc['instrset'])]
+    for instr in cc['instrset']:
+        encoding = encoding + instr.encoding()
+
+    config = {'title'   :cc['title'],
+              'descset' :cc['descset'],
+              'encoding':encoding}
+    ofile = fname.replace('.py','.json')
+    open(ofile,mode='w').write(json.dumps(config))
 
 def main():
     parser = argparse.ArgumentParser(description='train pattern generator')
@@ -23,10 +42,15 @@ def main():
     for i in range(2,21):
         patterns.append( {'name':'100b_{}'.format(i), 'destn':0, 'bunch_spacing':i, 'bunches_per_train':100, 'repeat':False } )
 
-#    patterns = [{'name':'2b_100'  , 'destn':0, 'bunch_spacing':100  , 'bunches_per_train':200   , 'repeat':False }]
+    #  New format (multiple destinations, control seq, start bucket,)
+    patterns = [{'name':'2b_100'  , 
+                 'beam':[{'destn':0, 'bunch_spacing':100  , 'bunches_per_train':200   , 'start_bucket':0, 'repeat':False }],
+                 'ctrl':[{'seq':0, 'period':100, 'start_bucket':0 }]}]
 
-    TrainArgs = collections.namedtuple('TrainArgs',['output','train_spacing','trains_per_second','bunch_spacing','bunches_per_train','repeat'])
+    TrainArgs = collections.namedtuple('TrainArgs',['output','train_spacing','trains_per_second','bunch_spacing','bunches_per_train','start_bucket','repeat'])
     targs = {}
+    CtrlArgs = collections.namedtuple('PeriodicArgs',['output','period','start_bucket'])
+    cargs = {}
     SimArgs = collections.namedtuple('SimArgs',['pattern','start','stop','mode'])
     sargs = {}
     for p in patterns:
@@ -34,17 +58,41 @@ def main():
             os.mkdir('{}/{}'.format(args.output,p['name']))
         except:
             pass
-        targs['output'] = '{}/{}/d{}.py'.format(args.output,p['name'],p['destn'])
-        targs['train_spacing'] = 910000
-        targs['trains_per_second'] = 1
-        targs['bunch_spacing'] = p['bunch_spacing']
-        targs['bunches_per_train'] = p['bunches_per_train']
-        targs['repeat'] = p['repeat']
-        TrainGenerator(TrainArgs(**targs))
 
+        #  Generate the beam train sequences ("regular bunch trains")
+        if 'beam' in p:
+            for b in p['beam']:
+                targs['output'] = '{}/{}/d{}.py'.format(args.output,p['name'],b['destn'])
+                targs['train_spacing'    ] = 910000
+                targs['trains_per_second'] = 1
+                targs['bunch_spacing'    ] = b['bunch_spacing']
+                targs['bunches_per_train'] = b['bunches_per_train']
+                targs['start_bucket'     ] = b['start_bucket']
+                targs['repeat'           ] = b['repeat']
+                TrainGenerator(TrainArgs(**targs))
+                tojson(targs['output'])
+
+                span = (targs['train_spacing']*(1-targs['trains_per_second']) +
+                        targs['bunch_spacing']*(targs['bunches_per_train']-1) +
+                        targs['start_bucket'])
+                if span > 910000:
+                    print('Bunch train spans the 1Hz marker.  Validation may not match.')
+                    print('Extending the validation simulation to the next 1-second interval')
+                    print('  may be necessary.')
+
+        if 'ctrl' in p:
+            #  Generate the control sequences
+            for b in p['ctrl']:
+                cargs['output'] = '{}/{}/c{}.py'.format(args.output,p['name'],b['seq'])
+                cargs['period'           ] = [b['period']]
+                cargs['start_bucket'     ] = [b['start_bucket']]
+                PeriodicGenerator(CtrlArgs(**cargs))
+                tojson(cargs['output'])
+
+        #  Simulate the beam generation/arbitration
         sargs['pattern'] = '{}/{}'.format(args.output,p['name'])
         sargs['start'  ] = 0
-        sargs['stop'   ] = 910000  # controls beam.py output
+        sargs['stop'   ] = 910000
         sargs['mode'   ] = 'CW'
         seqsim(SimArgs(**sargs))
 

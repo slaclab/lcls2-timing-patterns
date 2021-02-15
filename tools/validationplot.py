@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 import glob
-from destn import *
+from tools.destn import *
 
 nd = len(destn)
 ndnz = None
@@ -13,14 +13,14 @@ def hdr_line(stat):
 
 def stat_line(s,stat):
     line = ' |'
-    for i in range(len(s['stats'])):
+    for i,v in enumerate(s):
         if dnz[i]:
-            line += ' {:6d}'.format(s['stats'][i][stat])
+            line += ' {:6d}'.format(v[stat])
     return line
 
 def validate(args):
 
-    fname = args.pattern+'/validation.dat'
+    fname = args.pattern+'/stats.json'
     stats = json.loads(open(fname,mode='r').read())
 
     # parse stats and destn to determine which destinations can be sparsified from display
@@ -31,9 +31,9 @@ def validate(args):
     global ndnz
     dnz  = [False]*nd
     pcnz = [False]*nd
-    for s in stats:
-        for i in range(len(s['stats'])):
-            if s['stats'][i]['sum']:
+    for s in stats.values():
+        for i,d in enumerate(s):
+            if d['sum']:
                 dnz[i] = True
                 for j in range(nd):
                     if destn[i]['amask']&(1<<j):
@@ -61,27 +61,28 @@ def validate(args):
     print(hdr)
 
     hdr = ''
-    for i in range(len(stats[0]['pc'])):
+    for i in range(nd):
         if pcnz[i]:
             hdr += ' D{:02d}'.format(i)
     for j in range(5):
         hdr += ' |'
-        for i in range(len(stats[0]['pc'])):
+        for i in range(nd):
             if dnz[i]:
                 hdr += '    D{:02d}'.format(i)
     print(hdr)
     print('{:-^{width}s}'.format('',width=len(hdr)))
 
-    for s in stats:
+    for k,v in stats.items():
+        key = eval(k)
         line = ''
-        for i in range(len(s['pc'])):
+        for i in range(nd):
             if pcnz[i]:
-                line += ' {:3d}'.format(s['pc']['{}'.format(i)])
-        line += stat_line(s,'sum')
-        line += stat_line(s,'min')
-        line += stat_line(s,'max')
-        line += stat_line(s,'first')
-        line += stat_line(s,'last')
+                line += ' {:3d}'.format(key[i])
+        line += stat_line(v,'sum')
+        line += stat_line(v,'min')
+        line += stat_line(v,'max')
+        line += stat_line(v,'first')
+        line += stat_line(v,'last')
         print(line)
 
 if __name__ == '__main__':

@@ -6,11 +6,11 @@ class TrainGenerator(object):
     def __init__(self, args):
         self.args = args
         self.f=open(args.output,mode='w')
-        self.f.write('from seq import *\n')
+        self.f.write('from tools.seq import *\n')
         self.f.write('\n')
         self.f.write('instrset = []\n')
-        self.f.write('instrset.append(FixedRateSync(marker=6,occ=1))\n')
         self.program()
+        self.f.close()
 
     def train(self, cc):
         intb = self.args.bunch_spacing
@@ -30,15 +30,15 @@ class TrainGenerator(object):
     def wait(self, intv):
         if intv <= 0:
             raise ValueError
-        if intv >= 2048:
+        if intv >= 0xfff:
             self.f.write('iinstr = len(instrset)\n')
-            #  Wait for 2048 intervals
-            self.f.write('instrset.append( FixedRateSync(marker=0, occ=2048) )\n')
-            if intv >= 4096:
+            #  Wait for 4095 intervals
+            self.f.write('instrset.append( FixedRateSync(marker=0, occ=4095) )\n')
+            if intv >= 0x1ffe:
                 #  Branch conditionally to previous instruction
-                self.f.write('instrset.append( Branch.conditional(line=iinstr, counter=3, value={}) )\n'.format(int(intv/2048)-1))
+                self.f.write('instrset.append( Branch.conditional(line=iinstr, counter=3, value={}) )\n'.format(int(intv/0xfff)-1))
 
-        rint = intv%2048
+        rint = intv%0xfff
         if rint:
             self.f.write('instrset.append( FixedRateSync(marker=0, occ={} ) )\n'.format(rint))
 
@@ -63,12 +63,17 @@ class TrainGenerator(object):
         if ((nint-1)*intv+(self.args.bunches_per_train-1)*self.args.bunch_spacing) >= 910000:
             raise ValueError
 
+        if self.args.start_bucket>0:
+            self.f.write('# start at bucket {}'.format(self.args.start_bucket))
+            self.wait(self.args.start_bucket)
+
         rint = nint % 256
         if rint:
             self.f.write('# loop A: {} trains\n'.format(rint))
             self.f.write('startreq = len(instrset)\n')
             self.wait(intv-self.train(1))
-            self.f.write('instrset.append( Branch.conditional(startreq, 0, {}) )\n'.format(rint-1))
+            if rint > 1:
+                self.f.write('instrset.append( Branch.conditional(startreq, 0, {}) )\n'.format(rint-1))
             self.f.write('# end loop A\n')
             nint = nint - rint
 
@@ -78,7 +83,8 @@ class TrainGenerator(object):
             self.f.write('startreq = len(instrset)\n')
             self.wait(intv-self.train(2))
             self.f.write('instrset.append( Branch.conditional(startreq, 0, 255) )\n')
-            self.f.write('instrset.append( Branch.conditional(startreq, 1, {}) )\n'.format(rint-1))
+            if rint > 1:
+                self.f.write('instrset.append( Branch.conditional(startreq, 1, {}) )\n'.format(rint-1))
             self.f.write('# end loop B\n')
             nint = nint - rint*256
 
@@ -90,7 +96,8 @@ class TrainGenerator(object):
             self.wait(intv-self.train(3))  # can use counter 3 here because no delay can be greater than 4096 (actually 3554)
             self.f.write('instrset.append( Branch.conditional(startreq, 0, 255) )\n')
             self.f.write('instrset.append( Branch.conditional(startreq, 1, 255) )\n')
-            self.f.write('instrset.append( Branch.conditional(startreq, 2, {}) )\n'.format(rint-1))
+            if rint > 1:
+                self.f.write('instrset.append( Branch.conditional(startreq, 2, {}) )\n'.format(rint-1))
             self.f.write('# end loop C\n')
             nint = nint - rint*256*256
 
@@ -99,8 +106,8 @@ class TrainGenerator(object):
             self.f.write('instrset.append( Branch.unconditional(0) )\n')
         else:
             #  Unconditional branch to here
-            self.f.write('startreq = len(instrset)\n')
-            self.f.write('instrset.append( Branch.unconditional(startreq) )\n')
+            self.f.write('last = len(instrset)\n')
+            self.f.write('instrset.append( Branch.unconditional(last) )\n')
 
         self.f.close()
 
@@ -111,7 +118,8 @@ def main():
     parser.add_argument("-N", "--trains_per_second" , required=False, type=int, help="number of trains per TPG second", default=0)
     parser.add_argument("-b", "--bunch_spacing"     , required=True , type=int, help="buckets between bunches within train")
     parser.add_argument("-n", "--bunches_per_train" , required=True , type=int, help="number of bunches in each train")
-    parser.add_argument("-r", "--repeat"            , required=False , help="number of bunches in each train", default=False)
+    parser.add_argument("-s", "--start_bucket"      , default=0     , type=int, help="starting bucket for first train")
+    parser.add_argument("-r", "--repeat"            , default=False , help="repeat sequence each second")
     args = parser.parse_args()
     TrainGenerator(args)
 
