@@ -6,11 +6,10 @@ import json
 import os
 import time
 
-#import sys
-#sys.path.insert(0,'.')
-from tools.destn import *
-from tools.pcdef import *
+import tools
 
+destn = {}
+pcdef = {}
 f=None
 
 def bitmask(l):
@@ -53,10 +52,9 @@ class SeqUser:
         self.start   = start
         self.stop    = stop
         self.acmode  = acmode
-        self.done    = 360 if acmode else 910000
+        self.done    = stop
         if self.done < stop:
             self.done = stop
-#        self.done    = 360 if acmode else 1820000
         print('start, stop: {:},{:}'.format(start,stop))
         
         self.app  = pg.Qt.QtGui.QApplication([])
@@ -81,6 +79,10 @@ class SeqUser:
         self.stats = []
         for i in range(len(destn)):
             self.stats.append( {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1} )
+
+        if len(seqdict['request'])==0:
+            print('No beam requests.  Skipping simulation.')
+            return
 
         x = 0
 
@@ -191,10 +193,6 @@ class SeqUser:
                 print('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
             gframe += 1
 
-        if engine.modes == 3:
-            print(bcolors.WARNING + "Found both fixed-rate-sync and ac-rate-sync instructions." + bcolors.ENDC)
-
-
         print(self.stats)
 
     def control(self, seqdict):
@@ -251,7 +249,7 @@ class SeqUser:
                                         self.stats[i][j]['min']=diff
                                     if diff > self.stats[i][j]['max']:
                                         self.stats[i][j]['max']=diff
-                                slast[j][j] = frame
+                                slast[i][j] = frame
                                 self.stats[i][j]['last']=frame
                                 if self.stats[i][j]['first']<0:
                                     self.stats[i][j]['first']=frame
@@ -273,11 +271,8 @@ class SeqUser:
                 print('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
             gframe += 1
 
-        if engine.modes == 3:
-            print(bcolors.WARNING + "Found both fixed-rate-sync and ac-rate-sync instructions." + bcolors.ENDC)
 
-
-        print(self.stats)
+        #print(self.stats)
 
     def show_plots(self):
         q = self.win.addPlot(title='Destn')
@@ -291,6 +286,9 @@ class SeqUser:
 
 #  A generator for all the power class tuple combinations
 def pcGen():
+    if len(destn)==0:
+        return
+
     d = [0]*len(destn)
     for i in range(len(destn)):
         d[i] = 0
@@ -312,6 +310,18 @@ def pcGen():
 
 def seqsim(args):
 
+    global destn
+    if hasattr(args,'destn'):
+        destn = args.destn
+    else:
+        destn = tools.destn
+
+    global pcdef
+    if hasattr(args,'pcdef'):
+        pcdef = args.pcdef
+    else:
+        pcdef = tools.pcdef
+    
     seq = SeqUser(acmode=(args.mode=='AC'),start=args.start,stop=args.stop)
 
     stats = {}
@@ -373,9 +383,9 @@ def seqsim(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='simple sequence plotting gui')
     parser.add_argument("--pattern", required=True, help="pattern to plot")
-    parser.add_argument("--start", default=  0, type=int, help="beginning timeslot")
-    parser.add_argument("--stop" , default=200, type=int, help="ending timeslot")
-    parser.add_argument("--mode" , default='CW', help="timeslot mode [CW,AC]")
+    parser.add_argument("--start"  , default=  0, type=int, help="beginning timeslot")
+    parser.add_argument("--stop"   , default=200, type=int, help="ending timeslot")
+    parser.add_argument("--mode"   , default='CW', help="timeslot mode [CW,AC]")
     args = parser.parse_args()
     
     seqsim(args).show_plots()

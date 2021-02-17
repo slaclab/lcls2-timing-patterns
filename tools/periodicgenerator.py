@@ -70,6 +70,7 @@ class PeriodicGenerator(object):
         #period = numpy.lcm.reduce(self.args.period)
         period = reduce(lcm,self.args.period)
         #  Brute force it to see how far we get (when will it fail?)
+        print('period {}  args.period {}'.format(period,self.args.period))
         reps   = [period // p for p in self.args.period]
         bkts   = [range(self.args.start_bucket[i],period,self.args.period[i]) 
                   for i in range(len(self.args.period))]

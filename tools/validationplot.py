@@ -18,9 +18,9 @@ def stat_line(s,stat):
             line += ' {:6d}'.format(v[stat])
     return line
 
-def validate(args):
+def validate_dest(args):
 
-    fname = args.pattern+'/stats.json'
+    fname = args.pattern+'/dest_stats.json'
     stats = json.loads(open(fname,mode='r').read())
 
     # parse stats and destn to determine which destinations can be sparsified from display
@@ -85,6 +85,17 @@ def validate(args):
         line += stat_line(v,'last')
         print(line)
 
+def validate_ctrl(args):
+
+    fname = args.pattern+'/ctrl_stats.json'
+    stats = json.loads(open(fname,mode='r').read())
+    print(' SEQ/Bit |  first  |  last   |   min   |   max   |   sum   |')
+    for seq,d in stats.items():
+        for b,stat in d.items():
+            if stat['first']>=0:
+                print(' {:3s},{:2s}  |{:9d}|{:9d}|{:9d}|{:9d}|{:9d}|'.
+                      format(seq,b,stat['first'],stat['last'],stat['min'],stat['max'],stat['sum']))
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='simple validation printing')
     parser.add_argument("--pattern", help="pattern result to plot")
@@ -95,6 +106,8 @@ if __name__ == '__main__':
         subdirs = glob.glob(args.pattern+'/*')
         for s in subdirs:
             args.pattern = s
-            validate(args)
+            validate_dest(args)
+            validate_ctrl(args)
     else:
-        validate(args)
+        validate_dest(args)
+        validate_ctrl(args)
