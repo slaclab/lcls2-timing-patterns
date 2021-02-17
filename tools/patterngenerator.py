@@ -1,11 +1,14 @@
 import collections
+from shutil import copy
 from tools.traingenerator import *
 from tools.periodicgenerator import *
 from tools.seqsim import *
 from tools.seq import *
+from tools.destn import *
+from tools.pcdef import *
 
 #  Convert .py to .json file for faster loading
-def tojson(fname):
+def tojson(fname,d={}):
     cc = {'title'   :'TITLE', 
           'descset' :None, 
           'instrset':None, 
@@ -18,6 +21,7 @@ def tojson(fname):
     config = {'title'   :cc['title'],
               'descset' :cc['descset'],
               'encoding':encoding}
+    config.update(d)
     ofile = fname.replace('.py','.json')
     open(ofile,mode='w').write(json.dumps(config))
 
@@ -54,15 +58,17 @@ def main():
     SimArgs = collections.namedtuple('SimArgs',['pattern','start','stop','mode'])
     sargs = {}
     for p in patterns:
+        ppath = '{}/{}/'.format(args.output,p['name'])
         try:
-            os.mkdir('{}/{}'.format(args.output,p['name']))
+            os.mkdir(ppath)
         except:
             pass
 
         #  Generate the beam train sequences ("regular bunch trains")
         if 'beam' in p:
+            allow = []
             for b in p['beam']:
-                targs['output'] = '{}/{}/d{}.py'.format(args.output,p['name'],b['destn'])
+                targs['output'] = ppath+'d{}.py'.format(b['destn'])
                 targs['train_spacing'    ] = 910000
                 targs['trains_per_second'] = 1
                 targs['bunch_spacing'    ] = b['bunch_spacing']
@@ -70,7 +76,8 @@ def main():
                 targs['start_bucket'     ] = b['start_bucket']
                 targs['repeat'           ] = b['repeat']
                 TrainGenerator(TrainArgs(**targs))
-                tojson(targs['output'])
+                #  Copy the allow mask to the pattern
+                tojson(targs['output'],{'allow':destn[b['destn']]['allow']})
 
                 span = (targs['train_spacing']*(1-targs['trains_per_second']) +
                         targs['bunch_spacing']*(targs['bunches_per_train']-1) +
@@ -79,6 +86,16 @@ def main():
                     print('Bunch train spans the 1Hz marker.  Validation may not match.')
                     print('Extending the validation simulation to the next 1-second interval')
                     print('  may be necessary.')
+
+                allow.extend(destn[b['destn']]['allow'])
+
+            #  Add required allow tables to pattern
+            for a in set(allow):
+                for pc in range(len(pcdef)):
+                    fname = 'allow_d{}_pc{}.py'.format(a,pc)
+                    copy('defaults/'+fname,ppath+fname)
+                    fname = 'allow_d{}_pc{}.json'.format(a,pc)
+                    copy('defaults/'+fname,ppath+fname)
 
         if 'ctrl' in p:
             #  Generate the control sequences

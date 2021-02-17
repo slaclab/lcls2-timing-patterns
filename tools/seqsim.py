@@ -13,6 +13,12 @@ from tools.pcdef import *
 
 f=None
 
+def bitmask(l):
+    v=0
+    for i in l:
+        v |= (1<<i)
+    return v
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -283,6 +289,7 @@ class SeqUser:
 
         input(bcolors.OKGREEN+'Press ENTER to exit'+bcolors.ENDC)
 
+#  A generator for all the power class tuple combinations
 def pcGen():
     d = [0]*len(destn)
     for i in range(len(destn)):
@@ -317,19 +324,17 @@ def seqsim(args):
 
         for i in range(len(destn)): 
             fname = args.pattern+'/d{}.py'.format(i)
-            if not os.path.exists(fname):
-                fname = 'defaults/d{}.py'.format(i)
-            config = {'title':'TITLE', 'descset':None, 'instrset':None}
-            exec(compile(open(fname).read(), fname, 'exec'), {}, config)
-            seqdict['request'].append(config['instrset'])
+            if os.path.exists(fname):
+                config = {'title':'TITLE', 'descset':None, 'instrset':None}
+                exec(compile(open(fname).read(), fname, 'exec'), {}, config)
+                seqdict['request'].append(config['instrset'])
 
-            fname = args.pattern+'/allow_d{:}_pc{:}.py'.format(i,pc[i])
-            if not os.path.exists(fname):
-                fname = 'defaults/allow_d{:}_pc{:}.py'.format(i,pc[i])
-            config = {'title':'TITLE', 'descset':None, 'instrset':None}
-            exec(compile(open(fname).read(), fname, 'exec'), {}, config)
-            seqdict['allow'].append(config['instrset'])
-            seqdict['allowmask'].append(destn[i]['amask'])
+                fname = args.pattern+'/allow_d{:}_pc{:}.py'.format(i,pc[i])
+                if os.path.exists(fname):
+                    config = {'title':'TITLE', 'descset':None, 'instrset':None}
+                    exec(compile(open(fname).read(), fname, 'exec'), {}, config)
+                    seqdict['allow'].append(config['instrset'])
+                    seqdict['allowmask'].append(bitmask(destn[i]['allow']))
 
         t0 = time.clock()
         seq.execute(seqdict)

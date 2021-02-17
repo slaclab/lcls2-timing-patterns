@@ -1,4 +1,4 @@
-from psdaq.seq.seq import *
+from seq import *
 
 sync_marker = 6
     

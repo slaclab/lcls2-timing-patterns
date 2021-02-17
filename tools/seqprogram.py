@@ -36,7 +36,11 @@ class SeqUser:
 #            self.lock.release()
 #            self.lock=None
 
-    def require(self, allow_mask):
+    def require(self, allow):
+        allow_mask = 0
+        for a in allow:
+            allow_mask |= (1<<a)
+
         v = self.reqmask.get()
         if v != allow_mask:
             print('Changing allowmask {}: {} to {}'
@@ -149,8 +153,7 @@ class SeqUser:
 
         ninstr = self.ninstr.get()
         if ninstr != ninstw:
-            print( 'Error: ninstr invalid %u (%u)' % (ninstr, ninstw))
-            return
+            raise RuntimeError('ninstr invalid %u (%u)' % (ninstr, ninstw))
 
         print( 'Confirmed ninstr %d'%ninstr)
 
@@ -173,7 +176,11 @@ class SeqUser:
             self.seqbname.put(config['descset'])
 
         self._idx = idx
-        return idx
+        
+        if 'allow' in config:
+            return (idx,config['allow'])
+
+        return (idx,)
 
     #  Start sequence immediately
     def begin(self, wait=False):

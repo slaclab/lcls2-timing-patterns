@@ -31,42 +31,54 @@ def main():
     restartPv = Pv(args.pv+':GBLSEQRESET')
 
     # 1)  Program sequences
+
+    #
+    #  Reprogram the allow sequences found in pattern
+    #    The entire allow engine/table is reloaded on the sync marker
+    #
     for i,seq in enumerate(allowSeq):
         seq['remove'] = seq['eng'].idx_list()
         #  Loop over all power classes
         for j in range(len(pcdef)):
             #  Load the sequence from the pattern directory, if it exists
             fname = args.pattern+'/allow_d{:}_pc{:}.json'.format(i,j)
-            #  Load from the default directory, it it doesn't exist
-            if not os.path.exists(fname):
-                fname = 'defaults/allow_d{:}_pc{:}.json'.format(i,j)
-
-            newseq = seq['eng'].loadfile(fname)
+            if os.path.exists(fname):
+                newseq = seq['eng'].loadfile(fname)[0]
+            else:
+                newseq = 0
             #  Assign the subsequence number for this power class
-            print('Assign table {} pc {} subseq {}'.format(i,j,newseq))
             allowTbl[i].seq(j,newseq)
         seq['eng'].schedule(0,sync)
 
     profile.append(('allowseq_prog',time.time()))
             
+    #
+    #  Reprogram the control sequences found in pattern
+    #    Reloaded entirely on sync marker
+    #
     for i,seq in enumerate(controlSeq):
         fname = args.pattern+'/c{:}.json'.format(i)
         if os.path.exists(fname):
             seq['remove'] = seq['eng'].idx_list()
-            subseq = seq['eng'].loadfile(fname)
+            subseq = seq['eng'].loadfile(fname)[0]
             seq['eng'].schedule(subseq,sync)
 
     profile.append(('ctrlseq_prog',time.time()))
 
+    #
+    #  Reprogram the beam sequences found in pattern
+    #    Reloaded entirely on sync marker
+    #
     for i,seq in enumerate(beamSeq):
         seq['remove'] = seq['eng'].idx_list()
         fname = args.pattern+'/d{:}.json'.format(i)
-        if not os.path.exists(fname):
-            fname = 'defaults/d{:}.json'.format(i)
-        subseq = seq['eng'].loadfile(fname)
+        if os.path.exists(fname):
+            (subseq,allow) = seq['eng'].loadfile(fname)
+            seq['eng'].require(allow) 
+            seq['eng'].destn  (i)
+        else:
+            subseq = 0
         seq['eng'].schedule(subseq,sync)
-        seq['eng'].require(destn[i]['amask'])
-        seq['eng'].destn  (i)
 
     profile.append(('beamseq_prog',time.time()))
         
@@ -77,6 +89,7 @@ def main():
     profile.append(('restart',time.time()))
 
     #  Need to be sure the new sequences are running before removing the old
+    #  Otherwise, we overwrite the running instructions
     time.sleep(1.05)
 
     # 3)  Clean up

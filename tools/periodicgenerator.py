@@ -38,7 +38,7 @@ class PeriodicGenerator(object):
 
         self.args = args
         self.f=open(args.output,mode='w')
-        self.f.write('from seq import *\n')
+        self.f.write('from tools.seq import *\n')
         self.f.write('\n')
         self.f.write('instrset = []\n')
         self.ninstr = 0  # Track # instructions to verify it will fit in instruction cache
