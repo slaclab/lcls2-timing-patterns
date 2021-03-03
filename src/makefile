@@ -19,14 +19,22 @@ LDFLAGS+=-L$(BSA)/$(TARCH)/lib
 INCLUDE_DIRS += $(BSA)/$(TARCH)/include
 INSTALL_DIR=../
 
-HEADERS  = tpr.hh tprsh.hh tprdata.hh
+HEADERS  = tpr.hh tprsh.hh tprdata.hh pattdata.hh
 
-tpr_SRCS  = tpr.cc
+tpr_SRCS  = tpr.cc pattdata.cc
 
 STATIC_LIBRARIES+=tpr
 
-tpr_record_SRCS = tpr_record.cc tpr.cc
-tpr_record_LIBS = pthread rt dl
+test_pattdata_SRCS = test_pattdata.cc
+test_pattdata_LIBS = tpr pthread rt dl
+PROGRAMS    += test_pattdata
+
+tpr_record_SRCS = tpr_record.cc
+tpr_record_LIBS = tpr pthread rt dl
 PROGRAMS    += tpr_record
+
+tpr_verify_SRCS = tpr_verify.cc
+tpr_verify_LIBS = tpr pthread rt dl
+PROGRAMS    += tpr_verify
 
 include $(CPSW_DIR)/rules.mak

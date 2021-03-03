@@ -6,6 +6,7 @@ from tools.seqsim import *
 from tools.seq import *
 from tools.destn import *
 from tools.pcdef import *
+import json
 
 #  Convert .py to .json file for faster loading
 def tojson(fname,d={}):
