@@ -11,6 +11,8 @@ namespace Patt {
   //  1Hz fixed markers are exactly 910000
   //  which is like 60*0.91/(1300/1400) or 58.8 Hz
   static const unsigned MAX_FRAMES = 910000;
+  static const unsigned MAX_DEST = 16;
+  static const unsigned MAX_CTRL = 18;
   static const uint8_t  NO_DEST = 0xff;
 
   // maps of bucket to ...
@@ -38,6 +40,7 @@ namespace Patt {
   public:
     const DestPatternType& pattern(const BeamClassType&);
   private:
+    unsigned _ndest;
     std::map<BeamClassType,DestPatternType> _patterns;
   };
 
@@ -48,6 +51,7 @@ namespace Patt {
     const PatternStat& stat(const BeamClassType,
                             unsigned dest);
   private:
+    unsigned _ndest;
     std::map< BeamClassType, std::vector<PatternStat> > _stats;
   };
 
@@ -55,8 +59,10 @@ namespace Patt {
   public:
     SeqPatternSet(std::string);
   public:
+    unsigned nengines() const { return _neng; }
     const SeqPatternType& seq(unsigned eng);
   private:
+    unsigned _neng;
     std::map<unsigned,SeqPatternType> _seqs;
   };
 
@@ -64,9 +70,11 @@ namespace Patt {
   public:
     SeqPatternStatSet(std::string);
   public:
+    unsigned nengines() const { return _neng; }
     const PatternStat& stat(unsigned eng,
                             unsigned bit);
   private:
+    unsigned _neng;
     std::map<unsigned, std::map<unsigned, PatternStat> > _stats;
   };
 };

@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <stdio.h>
+#include <signal.h>
 
 #include "tpr.hh"
 #include "tprsh.hh"
@@ -26,6 +27,8 @@ using namespace Tpr;
 using namespace Patt;
 
 static const double CLK_FREQ = 1300e6/7.;
+
+static bool lverbose = false;
 
 extern int optind;
 
@@ -79,7 +82,10 @@ static void* process(void* args) {
   DestPatternSet     dest_patt(std::string(t->fname)+"/dest.json");
   DestPatternStatSet dest_stat(std::string(t->fname)+"/dest_stats.json");
   SeqPatternSet      seq_patt (std::string(t->fname)+"/ctrl.json");
-  SeqPatternStatSet  seq_stat (std::string(t->fname)+"/ctrl_stats_stats.json");
+  SeqPatternStatSet  seq_stat (std::string(t->fname)+"/ctrl_stats.json");
+
+  if (lverbose)
+    printf("Waiting for input\n");
 
   while(1) {
     // wait for input
@@ -94,17 +100,54 @@ static void* process(void* args) {
     t->output.pop_front();
     sem_post(t->sem);
 
+    if (lverbose)
+      printf("Processing record\n");
+
     //  Process the record
-    {
-      const unsigned nframes = 910000;
+    do {
+      const unsigned nframes = MAX_FRAMES;  // what to do in AC mode?
       const Event* events = p->event;
       //  Summarize beam requests for each destination
-      BeamStat* stats = new BeamStat[16];
+      BeamStat* stats = new BeamStat[MAX_DEST];
+      BeamStat* cstat = new BeamStat[MAX_CTRL*16];
       uint64_t pulseId0 = events[0].pulseId;
+
+      //  Beam class should be static
+      BeamClassType bclass(MAX_DEST);
+      for(unsigned i=0; i<MAX_DEST; i++)
+        bclass[i] = (events[0].mpsClass>>(4*i))&0xf;
+
+      if (lverbose) 
+        printf("bclass %016llx\n", events[0].mpsClass);
+
+      const DestPatternType& dp = dest_patt.pattern(bclass);
+
       for(unsigned i=0; i<nframes; i++) {
         unsigned bucket = events[i].pulseId - pulseId0;
+        //  Check destination match
+        uint8_t destn = events[i].beamReq ? events[i].destn : NO_DEST;
+        if (dp.size() && destn!=dp[i]) { // mismatch
+          printf("BKT %6u:  dest %2x  exp %2x\n",
+                 i,destn,dp[i]);
+        }
+        //  Accumulate destination stats
         if (events[i].beamReq)
           stats[events[i].destn].request(bucket);
+        //  Check sequence match
+        for(unsigned e=0; e<seq_patt.nengines(); e++) {
+          const SeqPatternType & sp = seq_patt.seq(e);
+          if (events[i].control[e]!=sp[i]) {
+            printf("BKT %6u: ctrl %2d.%02x  exp %02x\n",
+                   i, e, events[i].control[e], sp[i]);
+          }
+          //  Accumulate sequence stats
+          uint16_t m=events[i].control[e];
+          for(unsigned b=0; m; b++) {
+            if (m&1) 
+              cstat[e*16+b].request(bucket);
+            m >>= 1;
+          }
+        }
       }
 
       printf("-------------------------------------------------------\n");
@@ -119,7 +162,7 @@ static void* process(void* args) {
       }               
       printf("-------------------------------------------------------\n");
         
-    }  
+    } while(0);  
 
     //  Release the record
     sem_wait(t->sem);
@@ -138,6 +181,24 @@ static void usage(const char* p) {
   printf("         -m            : require no MPS changes\n");
 }
 
+static TprReg* _reg = 0;
+static int idx = 11;
+
+static void sigHandler( int signal ) 
+{
+  psignal(signal, "sigHandler received signal");
+
+  //  Dump
+  if (_reg) {
+    _reg->csr.dump();
+    _reg->base.dump();
+
+    _reg->base.channel[idx].control = 0;
+  }
+
+  ::exit(signal);
+}
+
 int main(int argc, char** argv) {
 
   extern char* optarg;
@@ -146,12 +207,13 @@ int main(int argc, char** argv) {
   const char* dname = "/dev/tpra";
   bool        acsync = false;
   bool        mpstst = false;
-  while ( (c=getopt( argc, argv, "amd:f:h?")) != EOF ) {
+  while ( (c=getopt( argc, argv, "amd:f:vh?")) != EOF ) {
     switch(c) {
     case 'a': acsync = true; break;
     case 'm': mpstst = true; break;
     case 'd': dname = optarg; break;
     case 'f': fname = optarg; break;
+    case 'v': lverbose = true; break;
     case 'h':
     case '?':
     default:
@@ -159,6 +221,15 @@ int main(int argc, char** argv) {
     exit(0);
     }
   }
+
+  struct sigaction sa;
+  sa.sa_handler = sigHandler;
+  sa.sa_flags = SA_RESETHAND;
+
+  sigaction(SIGINT ,&sa,NULL);
+  sigaction(SIGABRT,&sa,NULL);
+  sigaction(SIGKILL,&sa,NULL);
+  sigaction(SIGSEGV,&sa,NULL);
 
   printf("Using tpr %s\n",dname);
 
@@ -174,7 +245,7 @@ int main(int argc, char** argv) {
     return -2;
   }
 
-  TprReg& reg = *reinterpret_cast<TprReg*>(ptr);
+  TprReg& reg = *(_reg = reinterpret_cast<TprReg*>(ptr));
   printf("FpgaVersion: %08X\n", reg.version.FpgaVersion);
   printf("BuildStamp: %s\n", reg.version.buildStamp().c_str());
 
@@ -186,21 +257,24 @@ int main(int argc, char** argv) {
 
   reg.tpr.clkSel(true);  // LCLS2 clock
   reg.tpr.rxPolarity(false);
+  usleep(1000000);
+  reg.tpr.resetCounts();
 
-  //  This is channel setup for 1 MHz data streaming
-  unsigned _channel = 0;
-  reg.base.setupTrigger(_channel,
-                        _channel,
-                        0, 0, 1, 0);
-  unsigned ucontrol = reg.base.channel[_channel].control;
-  reg.base.channel[_channel].control = 0;
+  for(unsigned i=0; i<14; i++)
+    reg.base.channel[i].control = 0;
 
-  unsigned urate   = 0; // max rate
-  unsigned destsel = 1<<17; // BEAM - DONT CARE
-  reg.base.channel[_channel].evtSel = (destsel<<13) | (urate<<0);
-  reg.base.channel[_channel].bsaDelay = 0;
-  reg.base.channel[_channel].bsaWidth = 1;
-  reg.base.channel[_channel].control = ucontrol | 1;
+  reg.base.channel[idx].control = 0;
+  reg.base.channel[idx].evtSel  = (1<<30) | 0;
+  reg.base.channel[idx].control = 1;
+
+  usleep(2000000);
+
+  if (lverbose) {
+    printf("TPR programmed\n");
+    reg.tpr.dump();
+    reg.csr.dump();
+    reg.base.dump();
+  }
 
   //  Make a queue of Pattern buffers
   ThreadArgs args;
@@ -220,18 +294,17 @@ int main(int argc, char** argv) {
     }
   }
 
-  int idx=0;
   char dev[16];
-  sprintf(dev,"%s%u",dname,idx);
+  sprintf(dev,"%s%x",dname,idx);
 
-  fd = open(dev, O_RDONLY);
-  if (fd<0) {
+  int fds = open(dev, O_RDONLY);
+  if (fds<0) {
     printf("Open failure for dev %s [FAIL]\n",dev);
     perror("Could not open");
     exit(1);
   }
 
-  ptr = mmap(0, sizeof(TprQueues), PROT_READ, MAP_SHARED, fd, 0);
+  ptr = mmap(0, sizeof(TprQueues), PROT_READ, MAP_SHARED, fds, 0);
   if (ptr == MAP_FAILED) {
     perror("Failed to map - FAIL");
     exit(1);
@@ -243,6 +316,9 @@ int main(int argc, char** argv) {
   char* buff = new char[32];
 
   int64_t allrp = q.allwp[idx];
+  
+  if (lverbose)
+      printf("allrp %llx\n",allrp);
 
   while(1) {
     if (args.input.empty()) {
@@ -255,10 +331,14 @@ int main(int argc, char** argv) {
     args.input.pop_front();
     sem_post(args.sem);
 
-    reg.base.channel[_channel].control = 1;
+    if (lverbose)
+      printf("Capturing\n");
 
-    read(fd, buff, 32);
+    //  enable channel
+    reg.base.channel[idx].control = 5;
 
+    read(fds, buff, 32);
+    
     //  capture all frames between 1Hz markers
     unsigned nframes=0;
     bool done  = false;
@@ -304,11 +384,11 @@ int main(int argc, char** argv) {
         
         allrp++;
       }
-      read(fd, buff, 32);
+      read(fds, buff, 32);  // why does this read not update q.allwp[idx]
     } while(!done);
 
     //  disable channel 0
-    reg.base.channel[_channel].control = 0;
+    reg.base.channel[idx].control = 0;
 
     //  push the buffer to processing
     sem_wait(args.sem);
@@ -318,5 +398,6 @@ int main(int argc, char** argv) {
 
   munmap(ptr, sizeof(TprQueues));
   close(fd);
+  close(fds);
 }
 

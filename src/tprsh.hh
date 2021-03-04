@@ -1,7 +1,7 @@
 #ifndef TPRSH_HH
 #define TPRSH_HH
 
-#define MOD_SHARED 12
+#define MOD_SHARED 14
 #define MAX_TPR_ALLQ (32*1024)
 #define MAX_TPR_BSAQ  1024
 #define MSG_SIZE      32

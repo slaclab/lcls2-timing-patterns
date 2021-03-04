@@ -49,6 +49,7 @@ DestPatternSet::DestPatternSet(std::string fname)
   while(1) {
     while(*p++ != '\"') ;
     BeamClassType beamclass = read_vector(p);
+    _ndest = beamclass.size();
     while(*p++ != ':') ;
     while(*p++ != '[') ;
     std::vector<unsigned> xdata = read_vector(p);
@@ -68,7 +69,9 @@ DestPatternSet::DestPatternSet(std::string fname)
 
 const DestPatternType& DestPatternSet::pattern(const BeamClassType& beamClass)
 {
-  return _patterns[beamClass];
+  BeamClassType bclass(beamClass);
+  bclass.resize(_ndest);
+  return _patterns[bclass];
 }
 
 DestPatternStatSet::DestPatternStatSet(std::string fname)
@@ -88,6 +91,7 @@ DestPatternStatSet::DestPatternStatSet(std::string fname)
   while(1) {
     while(*p++ != '\"') ;
     BeamClassType beamclass = read_vector(p);
+    _ndest = beamclass.size();
     std::vector<PatternStat> ps;
     while(*p++ != ':') ;
     while(*p++ != '[') ;

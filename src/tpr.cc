@@ -18,47 +18,41 @@ void XBar::setTpr( XBar::InMode  m ) { outMap[3] = m==XBar::StraightIn  ? 1:3; }
 void XBar::setTpr( XBar::OutMode m ) { outMap[1] = m==XBar::StraightOut ? 3:1; }
 void XBar::dump() const { for(unsigned i=0; i<4; i++) printf("Out[%d]: %d\n",i,outMap[i]); }
 
-void TprBase::dump() const {
-  static const unsigned NChan=12;
+void TprCsr::dump() const {
   printf("irqEnable [%p]: %08x\n",&irqEnable,irqEnable);
   printf("irqStatus [%p]: %08x\n",&irqStatus,irqStatus);
   printf("gtxDebug  [%p]: %08x\n",&gtxDebug  ,gtxDebug);
   printf("trigSel   [%p]: %08x\n",&trigMaster,trigMaster);
-  printf("channel0  [%p]\n",&channel[0].control);
-  printf("control : ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].control);
-  printf("\nevtCount: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].evtCount);
-  printf("\nbsaCount: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].bsaCount);
-  printf("\nevtSel  : ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].evtSel);
-  printf("\nbsaDelay: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].bsaDelay);
-  printf("\nbsaWidth: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",channel[i].bsaWidth);
-  printf("\nframeCnt: %08x\n",frameCount);
-  printf("bsaCnCnt: %08x\n",bsaCntlCount);
-  printf("trigger0  [%p]\n",&trigger[0].control);
-  printf("trgCntrl: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",trigger[i].control);
-  printf("\ntrgDelay: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",trigger[i].delay);
-  printf("\ntrgWidth: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",trigger[i].width);
-  printf("\ntrgDelayTap: ");
-  for(unsigned i=0; i<NChan; i++)      printf("%08x ",trigger[i].delayTap);
-  printf("\n");
 }
 
-void TprBase::setupDma    (unsigned fullThr) {
+void TprBase::dump() const {
+  static const unsigned NChan=14;
+  static const unsigned NTrig=12;
+  printf("\nchannel0  [%p]\n",&channel[0].control);
+#define CHAN_REG(reg) {                                                 \
+    printf("%s: ",#reg);                                                \
+    for(unsigned i=0; i<NChan; i++)    printf("%08x ",channel[i].reg);  \
+    printf("\n"); }
+  CHAN_REG(control);
+  CHAN_REG(evtCount);
+  CHAN_REG(bsaCount);
+  CHAN_REG(evtSel);
+  CHAN_REG(bsaDelay);
+  CHAN_REG(bsaWidth);
+  printf("\ntrigger0  [%p]\n",&trigger[0].control);
+#define TRIG_REG(reg) {                                                 \
+    printf("%s: ",#reg);                                                \
+    for(unsigned i=0; i<NTrig; i++)    printf("%08x ",trigger[i].reg);  \
+    printf("\n"); }
+  TRIG_REG(control);
+  TRIG_REG(delay);
+  TRIG_REG(width);
+  TRIG_REG(delayTap);
+#undef TRIG_REG
+}
+
+void TprCsr::setupDma    (unsigned fullThr) {
   dmaFullThr = fullThr;
-}
-
-void TprBase::setupDaq    (unsigned i,
-                           unsigned partition) {
-  channel[i].evtSel   = (1<<30) | (3<<14) | partition; // 
-  channel[i].control = 5;
 }
 
 void TprBase::setupChannel(unsigned i,
@@ -69,6 +63,32 @@ void TprBase::setupChannel(unsigned i,
                            unsigned    bsaWidth) {
   channel[i].control  = 0;
   channel[i].evtSel   = (1<<30) | unsigned(r); //
+  channel[i].bsaDelay = (bsaPresample<<20) | bsaDelay;
+  channel[i].bsaWidth = bsaWidth;
+  channel[i].control  = bsaWidth ? 7 : 5;
+}
+
+void TprBase::setupChannel(unsigned i,
+                           Destination d,
+                           ACRate      r,
+                           unsigned    timeSlotMask,
+                           unsigned    bsaPresample,
+                           unsigned    bsaDelay,
+                           unsigned    bsaWidth) {
+  channel[i].control  = 0;
+  channel[i].evtSel   = (1<<30) | (1<<11) | ((timeSlotMask&0x7fe)<<2) | (unsigned(r)&0x7); //
+  channel[i].bsaDelay = (bsaPresample<<20) | bsaDelay;
+  channel[i].bsaWidth = bsaWidth;
+  channel[i].control  = bsaWidth ? 7 : 5;
+}
+
+void TprBase::setupChannel(unsigned i,
+                           EventCode   r,
+                           unsigned    bsaPresample,
+                           unsigned    bsaDelay,
+                           unsigned    bsaWidth) {
+  channel[i].control  = 0;
+  channel[i].evtSel   = (1<<30) | (2<<11) | (unsigned(r)&0xff); //
   channel[i].bsaDelay = (bsaPresample<<20) | bsaDelay;
   channel[i].bsaWidth = bsaWidth;
   channel[i].control  = bsaWidth ? 7 : 5;
