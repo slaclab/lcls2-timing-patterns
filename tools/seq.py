@@ -102,7 +102,7 @@ class Branch(Instruction):
         if value == 0:
             #  sequence_engine_yaml.cc uses test_value to distinguish conditional/unconditional
             raise ValueError('BranchConditional called with value=0, evokes bug in sequence_engine_yaml.cc')
-        if value > 0xff:
+        if value > 0xfff:
             raise ValueError('BranchConditional called with value={}'.format(value))
         return cls((cls.opcode, line, counter, value))
 

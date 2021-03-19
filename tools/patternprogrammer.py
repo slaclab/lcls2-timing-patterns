@@ -1,26 +1,29 @@
 from tools.seqprogram import *
 from tools.destn import *
-from tools.pcdef import *
 from threading import Lock
+import json
 import os
 import argparse
 import time
 import cProfile
 
-def main():
-    parser = argparse.ArgumentParser(description='pattern pva programming')
-    parser.add_argument("--pattern", required=True, help="pattern subdirectory")
-    parser.add_argument("--pv"     , default='TPG:SYS2:2', help="TPG base pv; e.g. ")
-    args = parser.parse_args()
+#  Find the highest power class this sequence satisfies
+def power_class(seq, charge):
+    config = json.load(open(fname,mode='r'))
+    for i,q in enumerate(config['maxQ']):
+        if q is not None and charge > q:
+            return i-1
+    return len(config['maxQ'])-1
 
+def patternprogrammer(pattern, charge, pv):
     profile = []
     profile.append(('init',time.time()))
 
     #  Setup access to all sequence engines
-    allowSeq   = [{'eng':SeqUser(args.pv+':ALW{:02d}'.format(i))} for i in range(len(destn))]
-    beamSeq    = [{'eng':SeqUser(args.pv+':DST{:02d}'.format(i))} for i in range(len(destn))]
-    controlSeq = [{'eng':SeqUser(args.pv+':EXP{:02d}'.format(i))} for i in range(18)]
-    allowTbl   = [AlwUser(args.pv+':ALW{:02d}'.format(i)) for i in range(16)]
+    allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(16)]
+    beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i))} for i in range(16)]
+    controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(18)]
+    allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(14)]
 
     profile.append(('seqdict_init',time.time()))
 
@@ -28,7 +31,7 @@ def main():
     sync = FixedRateSync(6)  # 1Hz fixed rate
     #sync = ACRateSync(4)  # 1Hz AC rate
     restartmask = 0
-    restartPv = Pv(args.pv+':GBLSEQRESET')
+    restartPv = Pv(pv+':GBLSEQRESET')
 
     # 1)  Program sequences
 
@@ -39,15 +42,17 @@ def main():
     for i,seq in enumerate(allowSeq):
         seq['remove'] = seq['eng'].idx_list()
         #  Loop over all power classes
-        for j in range(len(pcdef)):
+        for j in range(14):
             #  Load the sequence from the pattern directory, if it exists
-            fname = args.pattern+'/allow_d{:}_pc{:}.json'.format(i,j)
+            fname = pattern+'/allow_d{:}_{:}.json'.format(i,j)
             if os.path.exists(fname):
                 newseq = seq['eng'].loadfile(fname)[0]
+                pc     = power_class(fname,charge)
             else:
                 newseq = 0
-            #  Assign the subsequence number for this power class
-            allowTbl[i].seq(j,newseq)
+                pc     = 0
+            #  Assign the subsequence number and power class
+            allowTbl[i].seq(j,pc,newseq)
         seq['eng'].schedule(0,sync)
 
     profile.append(('allowseq_prog',time.time()))
@@ -57,7 +62,7 @@ def main():
     #    Reloaded entirely on sync marker
     #
     for i,seq in enumerate(controlSeq):
-        fname = args.pattern+'/c{:}.json'.format(i)
+        fname = pattern+'/c{:}.json'.format(i)
         if os.path.exists(fname):
             seq['remove'] = seq['eng'].idx_list()
             subseq = seq['eng'].loadfile(fname)[0]
@@ -71,7 +76,7 @@ def main():
     #
     for i,seq in enumerate(beamSeq):
         seq['remove'] = seq['eng'].idx_list()
-        fname = args.pattern+'/d{:}.json'.format(i)
+        fname = pattern+'/d{:}.json'.format(i)
         if os.path.exists(fname):
             (subseq,allow) = seq['eng'].loadfile(fname)
             seq['eng'].require(allow) 
@@ -113,5 +118,11 @@ def main():
     print('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
 
 if __name__ == '__main__':
-    cProfile.run('main()')
-#    main()
+    parser = argparse.ArgumentParser(description='pattern pva programming')
+    parser.add_argument("--pattern", required=True, help="pattern subdirectory")
+    parser.add_argument("--charge" , required=True, help="bunch charge, pC", type=int)
+    parser.add_argument("--pv"     , default='TPG:SYS2:2', help="TPG base pv; e.g. ")
+    args = parser.parse_args()
+
+    cProfile.run('patternprogrammer(args.pattern, args.charge, args.pv)')
+#    main(args)

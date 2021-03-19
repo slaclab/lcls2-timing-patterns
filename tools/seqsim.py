@@ -5,8 +5,9 @@ import pprint
 import json
 import os
 import time
-
-import tools
+from collections import deque
+from itertools import chain
+#from .compress import compress
 
 destn = {}
 pcdef = {}
@@ -55,11 +56,7 @@ class SeqUser:
         self.done    = stop
         if self.done < stop:
             self.done = stop
-        print('start, stop: {:},{:}'.format(start,stop))
         
-        self.app  = pg.Qt.QtGui.QApplication([])
-        self.win  = pg.GraphicsWindow()
-
     def color(self,dest):
         x = float(dest)/float(len(destn)-1)
         c = (0,0,0)
@@ -67,7 +64,6 @@ class SeqUser:
             c = (511*(0.5-x),511*x,0)
         else:
             c = (0,511*(1.0-x),511*(x-0.5))
-        print('dest {:}  x {:}  color {:}'.format(dest,x,c))
         return c
 
     def execute(self, seqdict):
@@ -86,13 +82,13 @@ class SeqUser:
 
         x = 0
 
-        request_engines = []
-        for i in range(len(seqdict['request'])):
-            request_engines.append(Engine(self.acmode))
+        request_engines = {}
+        for e in seqdict['request'].keys():
+            request_engines[e] = Engine(self.acmode)
 
-        allow_engines   = []
-        for i in range(len(seqdict['allow'])):
-            allow_engines  .append(Engine(self.acmode))
+        allow_engines   = {}
+        for a in seqdict['allow'].keys():
+            allow_engines[a] = Engine(self.acmode)
 
         gframe = -1
         while gframe < self.done:
@@ -102,7 +98,7 @@ class SeqUser:
             arequest  = -1
 
             #  Form allow result first
-            for i,engine in enumerate(allow_engines):
+            for i,engine in allow_engines.items():
 
                 frame    = int(engine.frame)
                 request  = int(engine.request)
@@ -134,7 +130,7 @@ class SeqUser:
                             break
 
             #  Form request and apply allow table
-            for i,engine in enumerate(request_engines):
+            for i,engine in request_engines.items():
 
                 frame    = int(engine.frame)
                 request  = int(engine.request)
@@ -193,7 +189,7 @@ class SeqUser:
                 print('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
             gframe += 1
 
-        print(self.stats)
+        #print(self.stats)
 
     def control(self, seqdict):
 
@@ -274,7 +270,78 @@ class SeqUser:
 
         #print(self.stats)
 
+    def power(self, instrset, qwin):
+
+        result = {'spacing':910000}
+        frames = {}  # dictionary of requested buckets for each window
+        for q in qwin:
+            if q is not None:
+                result[q] = 0
+                frames[q] = deque()
+
+        request_engine = Engine(self.acmode)
+
+        slast = None
+        gframe = -1
+        while gframe < self.done:
+
+            engine = request_engine
+            frame    = int(engine.frame)
+            request  = int(engine.request)
+
+#            if self.verbose:
+#                print('Engine:  frame {}  request {:x}'.format(frame,request))
+
+            while frame == gframe:
+
+                if self.verbose:
+                    print('\t[{}] = {}'.format(engine.instr,instrset))
+
+                request  = int(engine.request)
+                instrset[engine.instr].execute(engine)
+
+                if engine.frame != frame:
+                    if self.verbose:
+                        print('\tframe: {}  instr {}  request {:x}'.format
+                              (frame,engine.instr,request))
+
+                    if request:
+                        if slast is not None:
+                            spacing = frame - slast
+                            if spacing < result['spacing']:
+                                result['spacing'] = spacing
+                        slast = frame
+
+                        for q in qwin:
+                            if q is not None:
+                                cut = frame - q
+                                frames[q].appendleft(frame)
+                                while True:
+                                    v=frames[q].pop()
+                                    if v>cut:
+                                        frames[q].append(v)
+                                        break
+                                if len(frames[q]) > result[q]:
+                                    result[q] = len(frames[q])
+
+                        if self.verbose:
+                            print('frames {}'.format(frames))
+                            print('result {}'.format(result))
+
+                    if engine.done:
+                        engine.request = 0
+                        break
+                    frame   = int(engine.frame)
+                    request = int(engine.request)
+
+            gframe += 1
+
+        return result
+
     def show_plots(self):
+        self.app  = pg.Qt.QtGui.QApplication([])
+        self.win  = pg.GraphicsWindow()
+
         q = self.win.addPlot(title='Destn')
         q.plot(self.xdata,self.ydata,pen=None,symbolPen=None,
                #symbolBrush=self.color(i), symbol='s', pxMode=True, size=2)
@@ -284,23 +351,27 @@ class SeqUser:
 
         input(bcolors.OKGREEN+'Press ENTER to exit'+bcolors.ENDC)
 
+#
 #  A generator for all the power class tuple combinations
-def pcGen():
-    if len(destn)==0:
-        return
-
-    d = [0]*len(destn)
-    for i in range(len(destn)):
+#  Note that there are modes where the number of combinations is
+#  too great to simulate [HXR/SXR/DiagLine delivery depends upon 
+#  6 destinations x 12 power classes = 12^6 = 3M].  We may limit the 
+#  simulations to the 2 highest power classes for each destination (2^6 = 64)
+#
+def allowSetGen(dests,seqs):
+    print('allowSetGen {} {}'.format(dests,seqs))
+    nd = len(dests)
+    d = [0]*nd
+    for i in range(nd):
         d[i] = 0
     yield(tuple(d))
 
     done=False
     while not done:
-        n = len(pcdef)-1
-        for i in reversed(range(len(destn))):
-            if d[i]==n:
+        for i in range(nd):
+            if d[i]==len(seqs[dests[i]])-1:
                 d[i]=0
-                if i==0:
+                if i==nd-1:
                     done=True
                     return
             else:
@@ -308,62 +379,104 @@ def pcGen():
                 break
         yield(tuple(d))
 
-def seqsim(args):
+#  simulate the allow sequence for determining power class
+#  the result will be the range of charges for which the sequence meets each power class limits
+def allowsim(instrset, pc, start=0, stop=910000, mode='CW'):
+    seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
 
+    #  Find all the integration windows
+    qwin = { p.winQ for p in pc }
+
+    #  Count the maximum requests in each integration window and the minimum bunch spacing
+#    seq.verbose = True
+    qpwr = seq.power(instrset, qwin)
+
+    #  For each power class calculate the maximum charge for which it satisfies
+    result = []
+    for p in pc:
+        if qpwr['spacing'] < p.spacing:
+            result.append(0)
+        elif p.winQ is None or qpwr[p.winQ]==0:
+            result.append(0x10000)
+        else:
+            result.append(p.sumQ / qpwr[p.winQ])
+
+    return result
+
+def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], seq_list={}):
     global destn
-    if hasattr(args,'destn'):
-        destn = args.destn
-    else:
-        destn = tools.destn
-
     global pcdef
-    if hasattr(args,'pcdef'):
-        pcdef = args.pcdef
-    else:
-        pcdef = tools.pcdef
+    destn = destn_list
+    pcdef = pc_list
     
-    seq = SeqUser(acmode=(args.mode=='AC'),start=args.start,stop=args.stop)
+    seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
 
-    stats = {}
-    dest  = {}
-    for pc in pcGen():
+    #  Determine which destination power classes need to be iterated over
+    beams  = []
+    allows = []
+    for i in range(len(destn)): 
+        fname = pattern+'/d{}.py'.format(i)
+        if os.path.exists(fname):
+            beams .append(i)
+            allows.extend(destn[i]['allow'])
+
+    allows = list(set(allows))
+    allows.sort()
+    if len(allows)==0:
+        raise RuntimeError('No allows')
+
+    stats = {'beams':beams,'allows':allows}
+    dest  = {'beams':beams,'allows':allows}
+    
+    #  Loop over allow sequence combinations (across relevant destinations)
+    for allowSet in allowSetGen(allows,seq_list):
+        key = '{}'.format(allowSet)
+        print(key)
         seqdict = {}
-        seqdict['request'  ] = []
-        seqdict['allow'    ] = []
-        seqdict['allowmask'] = []
-
-        for i in range(len(destn)): 
-            fname = args.pattern+'/d{}.py'.format(i)
+        seqdict['request'  ] = {}
+        seqdict['allow'    ] = {}
+        seqdict['allowmask'] = {}
+        for b in beams:
+            fname = pattern+'/d{}.py'.format(b)
             if os.path.exists(fname):
                 config = {'title':'TITLE', 'descset':None, 'instrset':None}
                 exec(compile(open(fname).read(), fname, 'exec'), {}, config)
-                seqdict['request'].append(config['instrset'])
+                seqdict['request'][b] = config['instrset']
+            else:
+                raise RuntimeError('Pattern depends upon beam destination without sequence')
 
-                fname = args.pattern+'/allow_d{:}_pc{:}.py'.format(i,pc[i])
-                if os.path.exists(fname):
-                    config = {'title':'TITLE', 'descset':None, 'instrset':None}
-                    exec(compile(open(fname).read(), fname, 'exec'), {}, config)
-                    seqdict['allow'].append(config['instrset'])
-                    seqdict['allowmask'].append(bitmask(destn[i]['allow']))
+        for i,a in enumerate(allows):
+            fname = pattern+'/allow_d{:}_{:}.py'.format(a,allowSet[i])
+            if os.path.exists(fname):
+                config = {'title':'TITLE', 'descset':None, 'instrset':None}
+                exec(compile(open(fname).read(), fname, 'exec'), {}, config)
+                seqdict['allow']    [a] = config['instrset']
+                seqdict['allowmask'][a] = bitmask(destn[a]['allow'])
+            else:
+                raise RuntimeError('Pattern depends upon allow sequence - not found {}'.format(fname))
 
+#        key = str(pc)
         t0 = time.clock()
         seq.execute(seqdict)
         t1 = time.clock()
         print('-- execute {} seconds'.format(t1-t0))
-        #  json requires names are quoted strings
-        dest ['{}'.format(pc)] = (seq.xdata,seq.ydata)
-        stats['{}'.format(pc)] = seq.stats
+        #  Compress by identifying runs
+        #dest [key] = compress(seq.xdata,seq.ydata)
+        dest [key] = (seq.xdata,seq.ydata)
+        stats[key] = {}
+        for b in beams:
+            stats[key][b] = seq.stats[b]
 
-    fname = args.pattern+'/dest.json'
+    fname = pattern+'/dest.json'
     open(fname,mode='w').write(json.dumps(dest))
-    fname = args.pattern+'/dest_stats.json'
+    fname = pattern+'/dest_stats.json'
     open(fname,mode='w').write(json.dumps(stats))
 
-    ctrl  = {}
+    ctrl    = {}
     seqdict = {}
     seqdict['request'] = {}
     for i in range(18):
-        fname = args.pattern+'/c{}.py'.format(i)
+        fname = pattern+'/c{}.py'.format(i)
         config = {'title':'TITLE', 'descset':None, 'instrset':None}
         if os.path.exists(fname):
             exec(compile(open(fname).read(), fname, 'exec'), {}, config)
@@ -373,9 +486,10 @@ def seqsim(args):
     seq.control(seqdict)
     t1 = time.clock()
 
-    fname = args.pattern+'/ctrl.json'
+    #seq.xdata = compress(seq.xdata)
+    fname = pattern+'/ctrl.json'
     open(fname,mode='w').write(json.dumps(seq.xdata))
-    fname = args.pattern+'/ctrl_stats.json'
+    fname = pattern+'/ctrl_stats.json'
     open(fname,mode='w').write(json.dumps(seq.stats))
 
     return seq
@@ -388,4 +502,4 @@ if __name__ == '__main__':
     parser.add_argument("--mode"   , default='CW', help="timeslot mode [CW,AC]")
     args = parser.parse_args()
     
-    seqsim(args).show_plots()
+    seqsim(args.pattern, args.start, args.stop, args.mode, destn_list=tools.destn, pc_list=tools.pcdef).show_plots()

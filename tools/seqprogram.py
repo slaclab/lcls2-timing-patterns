@@ -224,10 +224,10 @@ class AlwUser:
         self.setstate = Pv(prefix+':MPSSETSTATE')
         self.lock     = None
 
-    def seq(self, pc, subseq):
-        self.tbl[pc]['idx'   ].put(subseq)
-        self.tbl[pc]['start' ].put(0)
-        self.tbl[pc]['pclass'].put(pc)
+    def seq(self, i, pc, subseq):
+        self.tbl[i]['idx'   ].put(subseq)
+        self.tbl[i]['start' ].put(0)
+        self.tbl[i]['pclass'].put(pc)
 
     def safe(self):
         state = self.state.get()

@@ -2,8 +2,9 @@ import argparse
 import json
 import os
 import glob
-from tools.destn import *
+from lcls.destn import *
 
+destn = lcls_destn()
 nd = len(destn)
 ndnz = None
 dnz  = None
@@ -36,7 +37,7 @@ def validate_dest(args):
             if d['sum']:
                 dnz[i] = True
                 for j in range(nd):
-                    if destn[i]['amask']&(1<<j):
+                    if j in destn[i]['allow']:
                         pcnz[j] = True
 
     ndnz = 0

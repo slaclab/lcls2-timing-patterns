@@ -44,6 +44,8 @@ if __name__ == '__main__':
     ymax = 0
     ymin = 16
     for pc,pattern in data.items():
+        if pc=='allows' or pc=='beams':
+            continue
         ymax = np.amax(pattern[1],initial=ymax)
         ymin = np.amin(pattern[1],initial=ymin)
         ay = np.array(pattern[1])+ipc*0.04
