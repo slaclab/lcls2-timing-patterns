@@ -1,5 +1,4 @@
 from tools.seqprogram import *
-from tools.destn import *
 from threading import Lock
 import json
 import os
@@ -7,31 +6,32 @@ import argparse
 import time
 import cProfile
 
-#  Find the highest power class this sequence satisfies
-def power_class(seq, charge):
+#  Find the lowest power class this sequence satisfies
+def power_class(fname, charge):
     config = json.load(open(fname,mode='r'))
     for i,q in enumerate(config['maxQ']):
-        if q is not None and charge > q:
-            return i-1
-    return len(config['maxQ'])-1
+        if q is not None and charge < q:
+            return i
+    raise RuntimeError('power_class {} {} does not obey any'.format(fname,charge))
 
 def patternprogrammer(pattern, charge, pv):
     profile = []
     profile.append(('init',time.time()))
 
     #  Setup access to all sequence engines
-    allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(16)]
+    #    allow seq[14]=bcs jump,  allow seq[15]=manual jump
+    allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(14)]
     beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i))} for i in range(16)]
     controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(18)]
-    allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(14)]
+    allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
 
     profile.append(('seqdict_init',time.time()))
 
     #  Define restart trigger
     sync = FixedRateSync(6)  # 1Hz fixed rate
     #sync = ACRateSync(4)  # 1Hz AC rate
-    restartmask = 0
     restartPv = Pv(pv+':GBLSEQRESET')
+    #chargePv  = Pv(pv+':GBLSEQRESET')
 
     # 1)  Program sequences
 
@@ -40,19 +40,33 @@ def patternprogrammer(pattern, charge, pv):
     #    The entire allow engine/table is reloaded on the sync marker
     #
     for i,seq in enumerate(allowSeq):
+        print('allowSeq {}'.format(i))
         seq['remove'] = seq['eng'].idx_list()
-        #  Loop over all power classes
+
+        newseq = {}
+        pc     = {}
+        #  Loop over all allow sequences
         for j in range(14):
             #  Load the sequence from the pattern directory, if it exists
             fname = pattern+'/allow_d{:}_{:}.json'.format(i,j)
             if os.path.exists(fname):
-                newseq = seq['eng'].loadfile(fname)[0]
-                pc     = power_class(fname,charge)
+                newseq[j] = seq['eng'].loadfile(fname)[0]
+                pc    [j] = power_class(fname,charge)
             else:
-                newseq = 0
-                pc     = 0
+                pc    [j] = -1
+                break
+
+        #  Fill allow table
+        lseq = 0
+        lpc  = 0
+        iseq = 0
+        for j in range(14):
+            if pc[iseq]==j:
+                lseq = newseq[iseq]
+                lpc  = pc    [iseq]
+                iseq += 1
             #  Assign the subsequence number and power class
-            allowTbl[i].seq(j,pc,newseq)
+            allowTbl[i].seq(j,lpc,lseq)
         seq['eng'].schedule(0,sync)
 
     profile.append(('allowseq_prog',time.time()))
@@ -75,6 +89,9 @@ def patternprogrammer(pattern, charge, pv):
     #    Reloaded entirely on sync marker
     #
     for i,seq in enumerate(beamSeq):
+        if i==0:
+            seq['remove'] = []
+            continue
         seq['remove'] = seq['eng'].idx_list()
         fname = pattern+'/d{:}.json'.format(i)
         if os.path.exists(fname):
@@ -86,6 +103,8 @@ def patternprogrammer(pattern, charge, pv):
         seq['eng'].schedule(subseq,sync)
 
     profile.append(('beamseq_prog',time.time()))
+
+    #  Need to program the new charge value before restart
         
     # 2)  Restart
     restartPv.put(1)

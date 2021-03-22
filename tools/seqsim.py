@@ -72,9 +72,9 @@ class SeqUser:
 
         self.xdata = []
         self.ydata = []
-        self.stats = []
-        for i in range(len(destn)):
-            self.stats.append( {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1} )
+        self.stats = {}  # indexed by (non-contiguous) destn
+        for i in seqdict['request'].keys():
+            self.stats[i] = {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1}
 
         if len(seqdict['request'])==0:
             print('No beam requests.  Skipping simulation.')
@@ -157,7 +157,8 @@ class SeqUser:
                             requests |= (1<<i)
 
                             if allow&amask==amask:
-                                arequest  = i
+                                if i > arequest:
+                                    arequest  = i
 
                                 self.stats[i]['sum'] += 1
                                 if self.stats[i]['last']>=0:
@@ -171,9 +172,10 @@ class SeqUser:
                                 if self.stats[i]['first']<0:
                                     self.stats[i]['first']=frame
 
-                                if frame >= self.start and frame < self.stop:
-                                    self.xdata.append(frame)
-                                    self.ydata.append(i)
+                                #  Uncomment this to record every request that passes allow
+                                #if frame >= self.start and frame < self.stop:
+                                #    self.xdata.append(frame)
+                                #    self.ydata.append(i)
 
                         if engine.done:
                             engine.request = 0
@@ -181,9 +183,10 @@ class SeqUser:
                         frame   = int(engine.frame)
                         request = int(engine.request)
 
-            #if arequest>=0 and gframe >= self.start and gframe < self.stop:
-            #    self.xdata[arequest].append(gframe)
-            #    self.ydata[arequest].append(0+arequest*0.04)
+            #  This is the arbitrated result
+            if arequest>=0 and gframe >= self.start and gframe < self.stop:
+                self.xdata.append(gframe)
+                self.ydata.append(arequest)
 
             if self.verbose:
                 print('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
@@ -414,7 +417,7 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
     #  Determine which destination power classes need to be iterated over
     beams  = []
     allows = []
-    for i in range(len(destn)): 
+    for i in range(16):
         fname = pattern+'/d{}.py'.format(i)
         if os.path.exists(fname):
             beams .append(i)
@@ -442,6 +445,7 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
                 config = {'title':'TITLE', 'descset':None, 'instrset':None}
                 exec(compile(open(fname).read(), fname, 'exec'), {}, config)
                 seqdict['request'][b] = config['instrset']
+                seqdict['allowmask'][b] = bitmask(destn[b]['allow'])
             else:
                 raise RuntimeError('Pattern depends upon beam destination without sequence')
 
@@ -451,7 +455,6 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
                 config = {'title':'TITLE', 'descset':None, 'instrset':None}
                 exec(compile(open(fname).read(), fname, 'exec'), {}, config)
                 seqdict['allow']    [a] = config['instrset']
-                seqdict['allowmask'][a] = bitmask(destn[a]['allow'])
             else:
                 raise RuntimeError('Pattern depends upon allow sequence - not found {}'.format(fname))
 
