@@ -2,7 +2,7 @@ import collections
 from shutil import copy
 from tools.traingenerator import *
 from tools.periodicgenerator import *
-from tools.seqsim import seqsim
+from tools.seqsim import seqsim, controlsim
 from tools.generators import generator
 from tools.seqwrite import beam_write, allow_write, ctrl_write
 import lcls
@@ -11,6 +11,7 @@ import json
 def main():
     parser = argparse.ArgumentParser(description='train pattern generator')
     parser.add_argument("-o", "--output"            , required=True , help="file output path")
+    parser.add_argument("-c", "--control_only"      , action='store_true', help="regenerate control data")
     args = parser.parse_args()
 
     destn = lcls.lcls_destn()
@@ -57,7 +58,10 @@ def main():
                                 p['beam'][0]]
             #  If we need the kicker, set the standby rate for 1 MHz
             if i>4:  
-                p['ctrl'] = [{'seq':0, 'generator':'lookup', 'name':'929 kHz'}]
+                p['ctrl'] = [{'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}]
+            if args.control_only:
+                del p['beam']
+                del p['aseq']
             patterns.append(p)
 
     try:
@@ -93,6 +97,7 @@ def main():
                     (name,gen) = generator(seq)
                     allow_write(name=name,
                                 instr=gen.instr,
+                                start=gen.async_start,
                                 pcdef=pcdef,
                                 output=ppath+'allow_d{}_{}'.format(d,i))
 
@@ -104,10 +109,15 @@ def main():
                            instr=gen.instr,
                            output=ppath+'c{}'.format(b['seq']))
 
-        #  Simulate the beam generation/arbitration
-        seqsim(pattern='{}/{}'.format(args.output,p['name']),
-               start=0, stop=910000, mode='CW',
-               destn_list=destn, pc_list=range(14), seq_list=p['aseq'])
+        if args.control_only:
+            #  Simulate the control requests
+            controlsim(pattern='{}/{}'.format(args.output,p['name']),
+                       start=0, stop=910000, mode='CW')
+        else:
+            #  Simulate the beam generation/arbitration
+            seqsim(pattern='{}/{}'.format(args.output,p['name']),
+                   start=0, stop=910000, mode='CW',
+                   destn_list=destn, pc_list=range(14), seq_list=p['aseq'])
 
 if __name__=='__main__':
     main()

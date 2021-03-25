@@ -72,6 +72,7 @@ class SeqUser:
 
         self.xdata = []
         self.ydata = []
+        slast      = {}
         self.stats = {}  # indexed by (non-contiguous) destn
         for i in seqdict['request'].keys():
             self.stats[i] = {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1}
@@ -160,18 +161,6 @@ class SeqUser:
                                 if i > arequest:
                                     arequest  = i
 
-                                self.stats[i]['sum'] += 1
-                                if self.stats[i]['last']>=0:
-                                    diff = frame-slast
-                                    if diff < self.stats[i]['min'] or self.stats[i]['min']<0:
-                                        self.stats[i]['min']=diff
-                                    if diff > self.stats[i]['max']:
-                                        self.stats[i]['max']=diff
-                                slast = frame
-                                self.stats[i]['last']=frame
-                                if self.stats[i]['first']<0:
-                                    self.stats[i]['first']=frame
-
                                 #  Uncomment this to record every request that passes allow
                                 #if frame >= self.start and frame < self.stop:
                                 #    self.xdata.append(frame)
@@ -187,6 +176,19 @@ class SeqUser:
             if arequest>=0 and gframe >= self.start and gframe < self.stop:
                 self.xdata.append(gframe)
                 self.ydata.append(arequest)
+
+                i=arequest
+                self.stats[i]['sum'] += 1
+                if self.stats[i]['last']>=0:
+                    diff = gframe-slast[i]
+                    if diff < self.stats[i]['min'] or self.stats[i]['min']<0:
+                        self.stats[i]['min']=diff
+                    if diff > self.stats[i]['max']:
+                        self.stats[i]['max']=diff
+                slast[i] = gframe
+                self.stats[i]['last']=gframe
+                if self.stats[i]['first']<0:
+                    self.stats[i]['first']=gframe
 
             if self.verbose:
                 print('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
@@ -406,6 +408,30 @@ def allowsim(instrset, pc, start=0, stop=910000, mode='CW'):
 
     return result
 
+def controlsim(pattern, start=0, stop=910000, mode='CW'):
+    seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
+    ctrl    = {}
+    seqdict = {}
+    seqdict['request'] = {}
+    for i in range(18):
+        fname = pattern+'/c{}.py'.format(i)
+        config = {'title':'TITLE', 'descset':None, 'instrset':None}
+        if os.path.exists(fname):
+            exec(compile(open(fname).read(), fname, 'exec'), {}, config)
+            seqdict['request'][i] = config['instrset']
+
+    t0 = time.clock()
+    seq.control(seqdict)
+    t1 = time.clock()
+
+    #seq.xdata = compress(seq.xdata)
+    fname = pattern+'/ctrl.json'
+    open(fname,mode='w').write(json.dumps(seq.xdata))
+    fname = pattern+'/ctrl_stats.json'
+    open(fname,mode='w').write(json.dumps(seq.stats))
+
+    return seq
+
 def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], seq_list={}):
     global destn
     global pcdef
@@ -475,25 +501,7 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
     fname = pattern+'/dest_stats.json'
     open(fname,mode='w').write(json.dumps(stats))
 
-    ctrl    = {}
-    seqdict = {}
-    seqdict['request'] = {}
-    for i in range(18):
-        fname = pattern+'/c{}.py'.format(i)
-        config = {'title':'TITLE', 'descset':None, 'instrset':None}
-        if os.path.exists(fname):
-            exec(compile(open(fname).read(), fname, 'exec'), {}, config)
-            seqdict['request'][i] = config['instrset']
-
-    t0 = time.clock()
-    seq.control(seqdict)
-    t1 = time.clock()
-
-    #seq.xdata = compress(seq.xdata)
-    fname = pattern+'/ctrl.json'
-    open(fname,mode='w').write(json.dumps(seq.xdata))
-    fname = pattern+'/ctrl_stats.json'
-    open(fname,mode='w').write(json.dumps(seq.stats))
+    controlsim(pattern,start,stop,mode)
 
     return seq
 

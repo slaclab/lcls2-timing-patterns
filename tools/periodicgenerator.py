@@ -33,6 +33,7 @@ class PeriodicGenerator(object):
     #  Beam Requests
     def __init__(self, period, start, charge):
         self.charge = charge
+        self.async_start       = None
         self.__init__(period, start, output)
 
     #  Control Requests

@@ -6,8 +6,9 @@ import collections
 
 def generator(arg):
     if arg['generator']=='lookup':
-        gen = collections.namedtuple('seq_lookup',['instr'])
-        return ('lookup {}'.format(arg['name']),gen(**{'instr':seq_lookup(arg['name'])}))
+        gen = collections.namedtuple('seq_lookup',['instr','async_start'])
+        seq = seq_lookup(arg)
+        return ('lookup {}'.format(arg['name']),gen(**{'instr':seq['instr'],'async_start':seq['async_start']}))
 
     if arg['generator']=='train':
         arg['train_spacing']     = 910000

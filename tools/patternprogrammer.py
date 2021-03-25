@@ -7,134 +7,162 @@ import time
 import cProfile
 
 #  Find the lowest power class this sequence satisfies
-def power_class(fname, charge):
-    config = json.load(open(fname,mode='r'))
+def power_class(config, charge):
     for i,q in enumerate(config['maxQ']):
         if q is not None and charge < q:
             return i
     raise RuntimeError('power_class {} {} does not obey any'.format(fname,charge))
 
-def patternprogrammer(pattern, charge, pv):
-    profile = []
-    profile.append(('init',time.time()))
+class PatternProgrammer(object):
+    def __init__(self, pv):
+        #  Setup access to all sequence engines
+        #    allow seq[14]=bcs jump,  allow seq[15]=manual jump
+        self.allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(14)]
+        self.beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i))} for i in range(16)]
+        self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(18)]
+        self.allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
+        self.restartPv  = Pv(pv+':GBLSEQRESET')
+        self.chargePv   = Pv(pv+':BEAMCHRG')
+        self.chargeEnPv = Pv(pv+':BEAMCHRGOVRD')
 
-    #  Setup access to all sequence engines
-    #    allow seq[14]=bcs jump,  allow seq[15]=manual jump
-    allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(14)]
-    beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i))} for i in range(16)]
-    controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(18)]
-    allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
+    def load(self, pattern, charge):
+        profile = []
+        profile.append(('init',time.time()))
 
-    profile.append(('seqdict_init',time.time()))
+        #  Define restart trigger
+        sync = FixedRateSync(6)  # 1Hz fixed rate
+        #sync = ACRateSync(4)  # 1Hz AC rate
 
-    #  Define restart trigger
-    sync = FixedRateSync(6)  # 1Hz fixed rate
-    #sync = ACRateSync(4)  # 1Hz AC rate
-    restartPv = Pv(pv+':GBLSEQRESET')
-    #chargePv  = Pv(pv+':GBLSEQRESET')
+        # 1)  Program sequences
 
-    # 1)  Program sequences
-
-    #
-    #  Reprogram the allow sequences found in pattern
-    #    The entire allow engine/table is reloaded on the sync marker
-    #
-    for i,seq in enumerate(allowSeq):
-        print('allowSeq {}'.format(i))
-        seq['remove'] = seq['eng'].idx_list()
-
-        newseq = {}
-        pc     = {}
-        #  Loop over all allow sequences
-        for j in range(14):
-            #  Load the sequence from the pattern directory, if it exists
-            fname = pattern+'/allow_d{:}_{:}.json'.format(i,j)
-            if os.path.exists(fname):
-                newseq[j] = seq['eng'].loadfile(fname)[0]
-                pc    [j] = power_class(fname,charge)
-            else:
-                pc    [j] = -1
-                break
-
-        #  Fill allow table
-        lseq = 0
-        lpc  = 0
-        iseq = 0
-        for j in range(14):
-            if pc[iseq]==j:
-                lseq = newseq[iseq]
-                lpc  = pc    [iseq]
-                iseq += 1
-            #  Assign the subsequence number and power class
-            allowTbl[i].seq(j,lpc,lseq)
-        seq['eng'].schedule(0,sync)
-
-    profile.append(('allowseq_prog',time.time()))
-            
-    #
-    #  Reprogram the control sequences found in pattern
-    #    Reloaded entirely on sync marker
-    #
-    for i,seq in enumerate(controlSeq):
-        fname = pattern+'/c{:}.json'.format(i)
-        if os.path.exists(fname):
+        #
+        #  Reprogram the allow sequences found in pattern
+        #    The entire allow engine/table is reloaded on the sync marker
+        #
+        for i,seq in enumerate(self.allowSeq):
+            print('allowSeq {}'.format(i))
             seq['remove'] = seq['eng'].idx_list()
-            subseq = seq['eng'].loadfile(fname)[0]
+            
+            newseq = {}
+            start  = {}
+            pc     = {}
+            #  Loop over all allow sequences
+            for j in range(14):
+                #  Load the sequence from the pattern directory, if it exists
+                fname = pattern+'/allow_d{:}_{:}.json'.format(i,j)
+                if os.path.exists(fname):
+                    config = json.load(open(fname,mode='r'))
+                    newseq[j] = seq['eng'].loadfile(fname)[0]
+                    start [j] = config['start']
+                    pc    [j] = power_class(config,charge)
+                else:
+                    pc    [j] = -1
+                    break
+
+            #  Fill allow table
+            lseq = 0
+            lpc  = 0
+            lsta = 0
+            iseq = 0
+            for j in range(14):
+                if pc[iseq]==j:
+                    lseq = newseq[iseq]
+                    lpc  = pc    [iseq]
+                    lsta = start [iseq]
+                    iseq += 1
+                #  Assign the subsequence number and power class
+                self.allowTbl[i].seq(j,lpc,lseq,lsta)
+            seq['eng'].schedule(0,sync)
+
+        profile.append(('allowseq_prog',time.time()))
+            
+        #
+        #  Reprogram the control sequences found in pattern
+        #    Reloaded entirely on sync marker
+        #
+        for i,seq in enumerate(self.controlSeq):
+            fname = pattern+'/c{:}.json'.format(i)
+            if os.path.exists(fname):
+                seq['remove'] = seq['eng'].idx_list()
+                subseq = seq['eng'].loadfile(fname)[0]
+                seq['eng'].schedule(subseq,sync)
+
+        profile.append(('ctrlseq_prog',time.time()))
+
+        #
+        #  Reprogram the beam sequences found in pattern
+        #    Reloaded entirely on sync marker
+        #
+        for i,seq in enumerate(self.beamSeq):
+            seq['remove'] = seq['eng'].idx_list()
+            fname = pattern+'/d{:}.json'.format(i)
+            if os.path.exists(fname):
+                (subseq,allow) = seq['eng'].loadfile(fname)
+                seq['eng'].require(allow) 
+                seq['eng'].destn  (i)
+            else:
+                subseq = 0
             seq['eng'].schedule(subseq,sync)
 
-    profile.append(('ctrlseq_prog',time.time()))
+        self.chargePv  .put(charge)
+        self.chargeEnPv.put(1)
 
-    #
-    #  Reprogram the beam sequences found in pattern
-    #    Reloaded entirely on sync marker
-    #
-    for i,seq in enumerate(beamSeq):
-        if i==0:
-            seq['remove'] = []
-            continue
-        seq['remove'] = seq['eng'].idx_list()
-        fname = pattern+'/d{:}.json'.format(i)
-        if os.path.exists(fname):
-            (subseq,allow) = seq['eng'].loadfile(fname)
-            seq['eng'].require(allow) 
-            seq['eng'].destn  (i)
-        else:
-            subseq = 0
-        seq['eng'].schedule(subseq,sync)
+        profile.append(('beamseq_prog',time.time()))
 
-    profile.append(('beamseq_prog',time.time()))
+        #  Need to program the new charge value before restart
 
-    #  Need to program the new charge value before restart
-        
-    # 2)  Restart
-    restartPv.put(1)
-    restartPv.put(0)
+        print('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
 
-    profile.append(('restart',time.time()))
+        t0 = profile[0][1]
+        for p in profile:
+            print(' {:20s} : {} sec'.format(p[0],p[1]-t0))
+            t0 = p[1]
 
-    #  Need to be sure the new sequences are running before removing the old
-    #  Otherwise, we overwrite the running instructions
-    time.sleep(1.05)
+    def apply(self):
+        profile = []
+        profile.append(('init',time.time()))
 
-    # 3)  Clean up
-    for seq in allowSeq:
-        seq['eng'].remove(seq['remove'])
-        
-    for seq in controlSeq:
-        if 'remove' in seq:
+        # 2)  Restart
+        self.restartPv.put(1)
+        self.restartPv.put(0)
+
+        profile.append(('restart',time.time()))
+
+        #  Need to be sure the new sequences are running before removing the old
+        #  Otherwise, we overwrite the running instructions
+        time.sleep(1.05)
+
+        # 3)  Clean up
+        self.clean()
+
+        profile.append(('cleanup',time.time()))
+
+        print('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
+
+        t0 = profile[0][1]
+        for p in profile:
+            print(' {:20s} : {} sec'.format(p[0],p[1]-t0))
+            t0 = p[1]
+
+    def clean(self):
+
+        for seq in self.allowSeq:
             seq['eng'].remove(seq['remove'])
+            seq['remove'] = []
+        
+        for seq in self.controlSeq:
+            if 'remove' in seq:
+                seq['eng'].remove(seq['remove'])
+                seq['remove'] = []
 
-    for seq in beamSeq:
-        seq['eng'].remove(seq['remove'])
+        for seq in self.beamSeq:
+            seq['eng'].remove(seq['remove'])
+            seq['remove'] = []
 
-    profile.append(('cleanup',time.time()))
-
-    t0 = profile[0][1]
-    for p in profile:
-        print(' {:20s} : {} sec'.format(p[0],p[1]-t0))
-        t0 = p[1]
-
-    print('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
+def main(args):
+    p = PatternProgrammer(args.pv)
+    p.load(args.pattern, args.charge)
+    p.apply()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='pattern pva programming')
@@ -143,5 +171,5 @@ if __name__ == '__main__':
     parser.add_argument("--pv"     , default='TPG:SYS2:2', help="TPG base pv; e.g. ")
     args = parser.parse_args()
 
-    cProfile.run('patternprogrammer(args.pattern, args.charge, args.pv)')
-#    main(args)
+    cProfile.run('main(args)')
+    main(args)

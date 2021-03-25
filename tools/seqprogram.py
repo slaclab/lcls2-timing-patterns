@@ -166,7 +166,7 @@ class SeqUser:
         #  Get the assigned sequence num
         idx = self.idxseq[0].get()
         if idx < 2:
-            print( 'Error: subsequence index  invalid (%u)' % idx)
+            print( 'Error: subsequence index  invalid (%u)  fname %s' % (idx,fname))
             raise RuntimeError("Sequence failed")
 
         print( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
@@ -224,9 +224,9 @@ class AlwUser:
         self.setstate = Pv(prefix+':MPSSETSTATE')
         self.lock     = None
 
-    def seq(self, i, pc, subseq):
+    def seq(self, i, pc, subseq, start=0):
         self.tbl[i]['idx'   ].put(subseq)
-        self.tbl[i]['start' ].put(0)
+        self.tbl[i]['start' ].put(start)
         self.tbl[i]['pclass'].put(pc)
 
     def safe(self):

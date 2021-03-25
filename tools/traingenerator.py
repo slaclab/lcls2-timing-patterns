@@ -23,6 +23,7 @@ class TrainGenerator(object):
         self.bunches_per_train = bunches_per_train
         self.charge            = charge
         self.repeat            = repeat
+        self.async_start       = None
 
         print(vars(self))
 
