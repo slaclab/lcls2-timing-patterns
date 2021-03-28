@@ -7,8 +7,10 @@ import sys
 import glob
 import json
 import os
+import logging
 from tools.seqprogram import *
 from tools.patternprogrammer import PatternProgrammer
+from tools.mpssim import MpsSim
 
 def toIntList(l):
     lq = l.strip('[(,').rstrip(')],')
@@ -88,10 +90,25 @@ class PatternSelection(QtWidgets.QGroupBox):
     chargeChanged  = QtCore.pyqtSignal(int, name='chargeChanged')
 
     def __init__(self, path, pattern):
-        super(QtWidgets.QGroupBox,self).__init__('Pattern')
+        super(QtWidgets.QGroupBox,self).__init__('Pattern Select')
         self.pattern = pattern
-        self.mode_select = QtWidgets.QComboBox()
-        self.patt_select = QtWidgets.QComboBox()
+
+        v = QtWidgets.QVBoxLayout()
+
+        hb = QtWidgets.QHBoxLayout()
+        hb.addWidget(QtWidgets.QLabel('Mode'))
+        cb = QtWidgets.QComboBox()
+        hb.addWidget(cb)
+        v.addLayout(hb)
+        self.mode_select = cb
+
+        hb = QtWidgets.QHBoxLayout()
+        hb.addWidget(QtWidgets.QLabel('Pattern'))
+        cb = QtWidgets.QComboBox()
+        hb.addWidget(cb)
+        v.addLayout(hb)
+        self.patt_select = cb
+
         m = {os.path.basename(f).split('.')[0] for f in glob.glob(path+'/*')}
         m.remove('destn')
         m.remove('pcdef')
@@ -101,9 +118,6 @@ class PatternSelection(QtWidgets.QGroupBox):
         self.mode_select.addItems(modes)
         self.ch = LineEditLabel('1','bunch charge','pC')
         self.ch.edit.editingFinished.connect(self._updateCharge)
-        v = QtWidgets.QVBoxLayout()
-        v.addWidget(self.mode_select)
-        v.addWidget(self.patt_select)
         v.addWidget(self.ch)
         self.setLayout(v)
         self.mode_select.setCurrentIndex(-1)
@@ -112,7 +126,13 @@ class PatternSelection(QtWidgets.QGroupBox):
         self.patt_select.currentTextChanged.connect(self._updatePatt)
         self.patternChanged.connect(pattern.update)
         self.chargeChanged.connect(pattern.chargeUpdate)
-        self.mode_select.setCurrentIndex(0)
+#        self.mode_select.setCurrentIndex(0)
+
+    def setMode(self, mode):
+        self.mode_select.setCurrentIndex(mode)
+
+    def setPatt(self, patt):
+        self.patt_select.setCurrentIndex(patt)
 
     def _updateMode(self, mode):
         self.patt_select.currentTextChanged.disconnect(self._updatePatt)
@@ -129,6 +149,7 @@ class PatternSelection(QtWidgets.QGroupBox):
     def _updatePatt(self, patt):
         self.patt = patt
         self.patternChanged.emit(self.mode+'.'+patt)
+        self._updateCharge()
 
     def _updateCharge(self):
         self.chargeChanged.emit(int(self.ch.edit.text()))
@@ -136,7 +157,7 @@ class PatternSelection(QtWidgets.QGroupBox):
 class AllowSetSelection(QtWidgets.QGroupBox):
 
     allowseq_changed = QtCore.pyqtSignal(str, name='allowseq_changed')
-    class_changed    = QtCore.pyqtSignal(str, name='class_changed')
+    class_changed    = QtCore.pyqtSignal(dict, name='class_changed')
 
     def __init__(self,pattern):
         super(QtWidgets.QGroupBox,self).__init__('Beam Class Set')
@@ -175,15 +196,17 @@ class AllowSetSelection(QtWidgets.QGroupBox):
 
         self._changed(0)
 
+    def setAllow(self, a, c):
+        self.bgroups[a].setCurrentIndex(10-c)
+
     def _changed(self, arg):
         #  Construct the str list of allow sequences
         seq = [d[10-self.bgroups[i].currentIndex()] for i,d in self.pattern.allow_seq.items()]
         arg = str(tuple(seq))
         self.allowseq_changed.emit(arg)
         #  Construct the str list of beam classes
-        seq = [10-self.bgroups[i].currentIndex() for i,d in self.pattern.allow_seq.items()]
-        arg = str(tuple(seq))
-        self.class_changed.emit(arg)
+        seq = {i:(10-self.bgroups[i].currentIndex()) for i,d in self.pattern.allow_seq.items()}
+        self.class_changed.emit(seq)
 
 
 class StatisticsTable(QtWidgets.QGroupBox):
@@ -247,12 +270,13 @@ class Programmer(QtWidgets.QGroupBox):
         names = ['D'+str(b) for b in range(16)]
         self.table.setRowCount(len(names)) # sum, first, last, min, max
         self.table.setVerticalHeaderLabels(names)
-        stats = ['Class','Rate']
+        stats = ['Class','Rate','Sum']
         self.table.setColumnCount(len(stats))
         self.table.setHorizontalHeaderLabels(stats)
         for i in range(16):
             self.table.setItem(i,0,QtWidgets.QTableWidgetItem(''))
             self.table.setItem(i,1,QtWidgets.QTableWidgetItem(''))
+            self.table.setItem(i,2,QtWidgets.QTableWidgetItem(''))
         vb.addWidget(self.table)
 
         self.setLayout(vb)
@@ -260,6 +284,7 @@ class Programmer(QtWidgets.QGroupBox):
         self.update_table.connect(self._table_update)
 
         self.ratepv = {}
+        self.sumv   = [0]*16
         self.getstatepv = {}
         self.setstatepv = {}
         #  Setup the rate monitor counters
@@ -288,8 +313,12 @@ class Programmer(QtWidgets.QGroupBox):
         self._applyB.setEnabled(True)
 
     def _apply(self):
-        self.programmer.apply()
         self._applyB.setEnabled(False)
+        self.sumv = [0]*16
+        self.programmer.apply()
+        self._applyB.setEnabled(True)
+        for i in range(16):
+            self.update_table.emit(i, 2, str(self.sumv[i]))
 
     def _table_update(self, row, col, v):
         self.table.item(row,col).setText(v)
@@ -297,19 +326,17 @@ class Programmer(QtWidgets.QGroupBox):
     def _rate_update(self, destn):
         if destn in self.ratepv:
             self.update_table.emit(destn, 1, str(self.ratepv[destn].__value__))
+            self.sumv[destn] += self.ratepv[destn].__value__
+            self.update_table.emit(destn, 2, str(self.sumv[destn]))
 
     def _state_update(self, destn):
         if destn in self.getstatepv:
             self.update_table.emit(destn, 0, str(int(self.getstatepv[destn].__value__)))
 
     #  Reassert the MPS state
-    def update(self, key):
-        ikey = toIntList(key)
-        print('update {} {}'.format(key,ikey))
-        j = 0
-        for i in self.pattern.allow_seq.keys():
-            self.setstatepv[i].put(ikey[j])
-            j += 1
+    def update(self, d):
+        for key,v in d.items():
+            self.setstatepv[key].put(v)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow, path, pv):
@@ -349,11 +376,12 @@ class Ui_MainWindow(object):
         self.pattern.patternChanged.connect(self.allow_set_select.update)
         self.pattern.patternChanged.connect(self.pp.update_pattern)
         self.allow_set_select.allowseq_changed.connect(self.stat_table.update)
-        self.allow_set_select.class_changed.connect(self.pp.update)
+#        self.allow_set_select.class_changed.connect(self.pp.update)
         #  Initialize
-        self.pattern_select.mode_select.setCurrentIndex(0)
-        self.pattern_select.patt_select.setCurrentIndex(0)
-        self.pattern_select._updateCharge()
+#        self.pattern_select.mode_select.setCurrentIndex(0)
+#        self.pattern_select.patt_select.setCurrentIndex(0)
+#        self.pattern_select._updateCharge()
+
 
 def main():
     print(QtCore.PYQT_VERSION_STR)
@@ -361,14 +389,18 @@ def main():
     parser = argparse.ArgumentParser(description='simple pattern browser gui')
     parser.add_argument("--path", help="path to pattern directories", required=True)
     parser.add_argument("--pv"     , default='TPG:SYS2:2', help="TPG base pv; e.g. ")
+    parser.add_argument("--mps_host", default='cpu-b084-pm01', help='mpssim host')
+    parser.add_argument("--mps_port", default=11000, help='mpssim port')
     args = parser.parse_args()
+
+    mps = MpsSim(args.mps_host,args.mps_port)
 
     app = QtWidgets.QApplication([])
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow,args.path,args.pv)
+    ui.allow_set_select.class_changed.connect(mps.update)
     MainWindow.updateGeometry()
-
     MainWindow.show()
     sys.exit(app.exec_())
 

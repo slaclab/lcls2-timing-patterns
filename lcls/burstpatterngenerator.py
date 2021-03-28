@@ -97,8 +97,8 @@ def main():
                     (name,gen) = generator(seq)
                     allow_write(name=name,
                                 instr=gen.instr,
-                                start=gen.async_start,
-                                pcdef=pcdef,
+                                start=0,     # start is used at reset, repeat=False, 
+                                pcdef=pcdef, # keep alignment of periodic and burst
                                 output=ppath+'allow_d{}_{}'.format(d,i))
 
         if 'ctrl' in p:

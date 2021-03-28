@@ -21,6 +21,7 @@ INSTALL_DIR=../
 
 HEADERS  = tpr.hh tprsh.hh tprdata.hh pattdata.hh
 
+
 tpr_SRCS  = tpr.cc pattdata.cc
 
 STATIC_LIBRARIES+=tpr
@@ -36,5 +37,17 @@ PROGRAMS    += tpr_record
 tpr_verify_SRCS = tpr_verify.cc
 tpr_verify_LIBS = tpr pthread rt dl
 PROGRAMS    += tpr_verify
+
+tpr_trig_SRCS = tpr_trig.cc
+tpr_trig_LIBS = tpr pthread rt dl
+PROGRAMS    += tpr_trig
+
+tpr_util_SRCS = tpr_util.cc
+tpr_util_LIBS = tpr pthread rt dl
+PROGRAMS    += tpr_util
+
+mpssim_tst_SRCS = mpssim_tst.cc Reg.cc
+mpssim_tst_LIBS = pthread rt dl
+PROGRAMS    += mpssim_tst
 
 include $(CPSW_DIR)/rules.mak

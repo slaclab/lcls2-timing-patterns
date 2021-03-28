@@ -5,12 +5,19 @@ import os
 import argparse
 import time
 import cProfile
+import logging
 
 #  Find the lowest power class this sequence satisfies
+#  It must satisfy all higher power classes
 def power_class(config, charge):
-    for i,q in enumerate(config['maxQ']):
-        if q is not None and charge < q:
-            return i
+    maxQ = config['maxQ']
+    bc = -1
+    for c in range(len(maxQ)-1,-1,-1):
+        if charge > maxQ[c]:
+            break
+        bc = c
+    if bc >= 0:
+        return bc
     raise RuntimeError('power_class {} {} does not obey any'.format(fname,charge))
 
 class PatternProgrammer(object):
@@ -40,7 +47,7 @@ class PatternProgrammer(object):
         #    The entire allow engine/table is reloaded on the sync marker
         #
         for i,seq in enumerate(self.allowSeq):
-            print('allowSeq {}'.format(i))
+            logging.debug('allowSeq {}'.format(i))
             seq['remove'] = seq['eng'].idx_list()
             
             newseq = {}
@@ -111,11 +118,11 @@ class PatternProgrammer(object):
 
         #  Need to program the new charge value before restart
 
-        print('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
+        logging.debug('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
 
         t0 = profile[0][1]
         for p in profile:
-            print(' {:20s} : {} sec'.format(p[0],p[1]-t0))
+            logging.debug(' {:20s} : {} sec'.format(p[0],p[1]-t0))
             t0 = p[1]
 
     def apply(self):
@@ -137,11 +144,11 @@ class PatternProgrammer(object):
 
         profile.append(('cleanup',time.time()))
 
-        print('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
+        logging.debug('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
 
         t0 = profile[0][1]
         for p in profile:
-            print(' {:20s} : {} sec'.format(p[0],p[1]-t0))
+            logging.debug(' {:20s} : {} sec'.format(p[0],p[1]-t0))
             t0 = p[1]
 
     def clean(self):

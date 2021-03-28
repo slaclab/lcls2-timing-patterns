@@ -281,7 +281,7 @@ int main(int argc, char** argv) {
   args.fname = fname;
 
   //  Fill the input queue
-  for(unsigned i=0; i<1; i++)
+  for(unsigned i=0; i<3; i++)
     args.input.push_back(new Pattern);
 
   //  Launch the thread to handle processing

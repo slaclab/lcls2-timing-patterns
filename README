@@ -1,16 +1,25 @@
-Repository for LCLS2 timing pattern data.  Includes tools for simulating, validating, and programming timing patterns.
+Repository for TPG timing pattern data.  Includes tools for simulating, validating, and programming timing patterns.
 
 patterns: Directory of available patterns.  Includes
 
-  a[0-..]_d[0-13].py        - allow sequence per destination
-  d[0-13].py                - destination beam requests
-  c[0-16].py                - control requests
-  description.txt           - textual description
-  validation.dat            - destn/control statistics
-  			      sum over 1 TPG second for each set of conditions (PC*dest)
-			      first/last bucket requested
-			      min/max interval between requests
-			      max requests within each PC window** (still need to add this, used in PC calc for variable charge)
+  description.txt           - textual description of pattern
+  			    - it might be sufficient to just list the generating python functions 
+			      and input parameters
+  allow_d[0-13]_[0-13].py   - allow sequence python per destination
+  allow_d[0-13]_[0-13].json - dictionary of description, encoding, and maxQ for each beam class
+  			    - The maxQ array is used for re-classifying an allow sequence when
+			      the bunch charge is changed.  In practice, this simply means
+			      changing the beam class value associated with the sequence in 
+			      the allow table.
+  d[0-13].py                - destination beam requests python
+  d[0-13].json              - dictionary of description, encoding, and title
+  c[0-17].py                - control requests python
+  c[0-17].json              - dictionary of description, encoding, and title
+  ctrl.json                 - dictionary of control requests by bucket
+  ctrl_stats.json           - statistics of { rate, first/last bucket, min/max spacing } per sequence bit
+  dest.json                 - dictionary of beam requests by bucket per beam class combo
+  dest_stats.json           - statistics of { rate, first/last bucket, min/max spacing } per beam class combo
+  
 
 pcdef.py - python dictionary of power class defining parameters
 
@@ -61,3 +70,16 @@ tools: python utilities for generation, simulation, execution, validation
 
     seqsim.py --pattern <pattern subdirectory> --start <bucket> --stop <bucket> --mode <CW/AC>
       Simulate 
+
+    patternbrowser.py --path <dir>
+      GUI for viewing statistics and display of destination, control by bucket
+      for any setting of MPS beam classes
+
+    patterntester.py --path <dir> --mps_port <port> ...
+      GUI for programming a pattern into TPG and comparing live rates/sum with
+      simulated pattern results for any setting of MPS beam classes.  Depends
+      upon mpssim_tst to simulate MPS input.
+
+    patterntest_auto.py --path <dir> --mps_port <port> ...
+      Command line utility to loop through all patterns and MPS class
+      combinations for validating live rates/sums against simulated results.

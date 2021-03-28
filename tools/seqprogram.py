@@ -3,6 +3,7 @@ from tools.seq import *
 from tools.pv_ca import Pv
 from threading import Lock
 import argparse
+import logging
 
 class SeqUser:
     def __init__(self, base):
@@ -17,6 +18,7 @@ class SeqUser:
         self.idxseqr  = Pv(prefix+':RMVIDX')
         self.seqr     = Pv(prefix+':RMVSEQ')
         self.insert   = Pv(prefix+':INS')
+        self.cancel   = Pv(prefix+':CNSL')
         self.idxrun   = Pv(prefix+':RUNIDX')
         self.idxaddr  = Pv(prefix+':JUMPADDR')
         self.syncstart= Pv(prefix+':SYNCSEQ')
@@ -43,15 +45,15 @@ class SeqUser:
 
         v = self.reqmask.get()
         if v != allow_mask:
-            print('Changing allowmask {}: {} to {}'
-                  .format(self.base,v,allow_mask))
+            logging.debug('Changing allowmask {}: {} to {}'
+                          .format(self.base,v,allow_mask))
             self.reqmask.put(allow_mask)
 
     def destn(self,d):
         v = self.dest.get()
         if v != d:
-            print('Changing dest {}: {} to {}'
-                  .format(self.base,v,d))
+            logging.debug('Changing dest {}: {} to {}'
+                          .format(self.base,v,d))
             self.dest.put(d)
             
     def stop(self):
@@ -71,7 +73,7 @@ class SeqUser:
 
     def remove(self,idxl):
         for idx in idxl:
-            print( 'Removing seq %d'%idx)
+            logging.debug( 'Removing seq %d'%idx)
             self.idxseqr.put(idx)
             self.seqr.put(1)
             self.seqr.put(0)
@@ -80,40 +82,43 @@ class SeqUser:
     # Remove all existing subsequences
     def clean(self):
         ridx = -1
-        print( 'Remove %d'%ridx)
+        logging.debug( 'Remove %d'%ridx)
         if ridx < 0:
             idxl = self.idx_list()
             for idx in idxl:
-                print( 'Removing seq %d'%idx)
+                logging.debug( 'Removing seq %d'%idx)
                 self.idxseqr.put(idx)
                 self.seqr.put(1)
                 self.seqr.put(0)
                 time.sleep(0.1)
         elif ridx > 1:
-            print( 'Removing seq %d'%ridx)
+            logging.debug( 'Removing seq %d'%ridx)
             self.idxseqr.put(ridx)
             self.seqr.put(1)
             self.seqr.put(0)
 
     #  Load new sequence and return subsequence index
     def load(self, title=None, instrset=None, descset=None):
+        self.cancel.put(1)
+        self.cancel.put(0)
+
         self.desc.put(title)
 
         encoding = [len(instrset)]
         for instr in instrset:
             encoding = encoding + instr.encoding()
 
-        print( encoding)
+        logging.debug( encoding)
 
         self.instr.put( tuple(encoding) )
         time.sleep(0.2)
 
         ninstr = self.ninstr.get()
         if ninstr != len(instrset):
-            print( 'Error: ninstr invalid %u (%u)' % (ninstr, len(instrset)))
+            logging.error( 'Error: ninstr invalid %u (%u)' % (ninstr, len(instrset)))
             return
 
-        print( 'Confirmed ninstr %d'%ninstr)
+        logging.debug( 'Confirmed ninstr %d'%ninstr)
 
         self.insert.put(1)
         self.insert.put(0)
@@ -124,10 +129,10 @@ class SeqUser:
         #  Get the assigned sequence num
         idx = self.idxseq[0].get()
         if idx < 2:
-            print( 'Error: subsequence index  invalid (%u)' % idx)
+            logging.error( 'Error: subsequence index  invalid (%u)' % idx)
             raise RuntimeError("Sequence failed")
 
-        print( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
+        logging.debug( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
 
         #  (Optional for XPM) Write descriptions for each bit in the sequence
         if descset!=None:
@@ -138,15 +143,20 @@ class SeqUser:
 
     #  Load new sequence and return subsequence index
     def loadfile(self, fname):
+        self.cancel.put(1)
+        self.cancel.put(0)
 
         config = json.load(open(fname,mode='r'))
         
-        self.desc.put(config['title'])
+        try:
+            self.desc.put(config['title'][:35])
+        except:
+            raise RuntimeError('error writing {}'.format(config['title']))
 
         encoding = config['encoding']
         ninstw = encoding[0]
 
-        print(encoding)
+        logging.debug(encoding)
 
         self.instr.put( tuple(encoding) )
         time.sleep(0.2)
@@ -155,7 +165,7 @@ class SeqUser:
         if ninstr != ninstw:
             raise RuntimeError('ninstr invalid %u (%u)' % (ninstr, ninstw))
 
-        print( 'Confirmed ninstr %d'%ninstr)
+        logging.debug( 'Confirmed ninstr %d'%ninstr)
 
         self.insert.put(1)
         self.insert.put(0)
@@ -166,10 +176,10 @@ class SeqUser:
         #  Get the assigned sequence num
         idx = self.idxseq[0].get()
         if idx < 2:
-            print( 'Error: subsequence index  invalid (%u)  fname %s' % (idx,fname))
+            logging.error( 'Error: subsequence index  invalid (%u)  fname %s' % (idx,fname))
             raise RuntimeError("Sequence failed")
 
-        print( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
+        logging.debug( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
 
         #  (Optional for XPM) Write descriptions for each bit in the sequence
         if 'descset' in config and config['descset'] is not None:
