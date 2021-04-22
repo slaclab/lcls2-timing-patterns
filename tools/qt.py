@@ -132,6 +132,14 @@ class AllowSetSelectionQt(QtWidgets.QGroupBox):
         self.setLayout(grid)
 
 
+    def disable(self):
+        for b in self.bgroups.values():
+            b.setEnabled(False)
+
+    def enable(self):
+        for b in self.bgroups.values():
+            b.setEnabled(True)
+
     def update(self, p):
         for l in self.labels.values():
             l.hide()

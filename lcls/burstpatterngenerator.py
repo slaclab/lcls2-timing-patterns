@@ -57,7 +57,7 @@ def main():
                                 {'generator':'lookup', 'name':'10 Hz'},
                                 p['beam'][0]]
             #  If we need the kicker, set the standby rate for 1 MHz
-            if i>4:  
+            if i>lcls.dumpBSY:  
                 p['ctrl'] = [{'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}]
             if args.control_only:
                 del p['beam']

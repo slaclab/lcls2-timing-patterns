@@ -154,8 +154,12 @@ class Ui_MainWindow(object):
         #  Connect signals/slots
         self.pattern.signal.changed.connect(self.allow_set_select.update)
         self.pattern.signal.changed.connect(self.pp.update_pattern)
+        #  disable mps control if pattern is changed and not applied
+        self.pattern.signal.changed.connect(self.allow_set_select.disable)
+        #  reenable mps control if pattern is applied
+        self.pp._applyB.pressed.connect(self.allow_set_select.enable)
         self.allow_set_select.allowseq_changed.connect(self.stat_table.update)
-#        self.allow_set_select.class_changed.connect(self.pp.update)
+        self.allow_set_select.class_changed.connect(self.pp.update)
         #  Initialize
 #        self.pattern_select.mode_select.setCurrentIndex(0)
 #        self.pattern_select.patt_select.setCurrentIndex(0)

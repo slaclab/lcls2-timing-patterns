@@ -63,11 +63,12 @@ def main():
                 aseq.append(p['beam'][0])
                 p['aseq'][a] = aseq
             #  If we need the kicker, 
-            #    (1) set the standby rate for 93 kHz or full rate
+            #    (1) set the standby rate for full rate if pattern >= 10kHz
             #    (2) request the same rate to the DumpBSY
             #    (3) request 1 Hz to the highest priority engine to the DumpBSY
             if i>lcls.dumpBSY:
-                 p['ctrl'] = [{'seq':0, 'generator':'lookup', 'name':('929 kHz' if b['rate']>91000 else '93 kHz'),'request':'ControlRequest(1)'}]
+                 if b['rate']>=10000:
+                     p['ctrl'] = [{'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}]
                  dump = p['beam'][0].copy()
                  dump['destn'] = lcls.dumpBSY  # "DumpBSY"
                  p['beam'].append( dump )
