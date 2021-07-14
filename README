@@ -78,8 +78,17 @@ tools: python utilities for generation, simulation, execution, validation
     patterntester.py --path <dir> --mps_port <port> ...
       GUI for programming a pattern into TPG and comparing live rates/sum with
       simulated pattern results for any setting of MPS beam classes.  Depends
-      upon mpssim_tst to simulate MPS input.
+      upon mpssim_tst to simulate MPS input (see below).
 
     patterntest_auto.py --path <dir> --mps_port <port> ...
       Command line utility to loop through all patterns and MPS class
       combinations for validating live rates/sums against simulated results.
+
+Note that the last two scripts depend upon mpssim_tst running on the machine that hosts the TPG IOC;
+e.g. cpu-b084-pm01 in the B84 teststand.  The mpssim_tst executable is part of the tpg package and should
+be launched like so...
+
+   ssh laci@cpu-b084-pm01
+   /afs/slac/g/lcls/package/timing/tpg/R1.4.1/buildroot-2019.08-x86_64/bin/mpssim_tst -a 10.0.3.102 -p 2500 -v
+
+In this case, the mps_port command-line parameters should use the value 2500.
