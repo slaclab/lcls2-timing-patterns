@@ -56,9 +56,15 @@ def main():
                 p['aseq'][a] = [{'generator':'lookup', 'name':'0 Hz'},
                                 {'generator':'lookup', 'name':'10 Hz'},
                                 p['beam'][0]]
+
+            async_start = b['bunch_spacing'] * (b['bunches_per_train'] - 1)
+            p['ctrl'] = [{'seq':1, 'name':'end shutter', 'generator':'train',
+                          'destn':1, 'bunch_spacing':1, 'bunches_per_train':1, 'start_bucket':async_start, 'charge':0, 'repeat':False}]
+
             #  If we need the kicker, set the standby rate for 1 MHz
             if i>lcls.dumpBSY:  
-                p['ctrl'] = [{'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}]
+                p['ctrl'].append({'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'})
+
             if args.control_only:
                 del p['beam']
                 del p['aseq']
