@@ -63,6 +63,17 @@ def seq_lookup(arg):
          '93 kHz off' :{'instr':['FixedRateSync(0,5)','BeamRequest(0)','FixedRateSync(0,5)','Branch.unconditional(0)',
                                  'FixedRateSync(3,1)','Branch.unconditional(0)'],
                         'async_start':4},
+         '100 Hz off 0 Hz' :{'instr':['BeamRequest(0)','FixedRateSync(4,1)','Branch.unconditional(0)'],
+                            'async_start':1},
+         '99 Hz off 1 Hz'  :{'instr':['FixedRateSync(4,1)','BeamRequest(0)','Branch.conditional(0, 0, 98)','FixedRateSync(4,1)','Branch.unconditional(0)',
+                                      'FixedRateSync(6,1)','Branch.unconditional(0)'],
+                            'async_start':5},
+         '90 Hz off 10 Hz' :{'instr':['FixedRateSync(4,1)','BeamRequest(0)','Branch.conditional(0, 0, 8)','FixedRateSync(4,1)','Branch.unconditional(0)', 
+                                      'FixedRateSync(5,1)','Branch.unconditional(0)'],
+                            'async_start':5},
+         '50 Hz off 50 Hz' :{'instr':['FixedRateSync(4,1)','BeamRequest(0)','FixedRateSync(4,1)','Branch.unconditional(0)',
+                                      'FixedRateSync(5,1)','Branch.unconditional(0)'],
+                            'async_start':4}
          }
 
     name = arg['name']

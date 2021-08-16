@@ -25,7 +25,7 @@ def main():
     patterns = []
 
     #  'rate' value is just approx: used for kicker setup
-    rates = [ {'name':'0 Hz'   , 'rate':0 },
+    rates = [ {'name':'0 Hz'   , 'rate':0},
               {'name':'1 Hz'   , 'rate':1},
               {'name':'10 Hz'  , 'rate':10},
               {'name':'50 Hz'  , 'rate':50},
@@ -66,13 +66,17 @@ def main():
             #    (1) set the standby rate for full rate if pattern >= 10kHz
             #    (2) request the same rate to the DumpBSY
             #    (3) request 1 Hz to the highest priority engine to the DumpBSY
+            p['ctrl'] = []
             if i>lcls.dumpBSY:
                  if b['rate']>=10000:
-                     p['ctrl'] = [{'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}]
+                     p['ctrl'].append({'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'})
                  dump = p['beam'][0].copy()
                  dump['destn'] = lcls.dumpBSY  # "DumpBSY"
                  p['beam'].append( dump )
                  p['beam'].append( {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY_keep} )
+                 
+            if b['rate']<100:
+               p['ctrl'].append({'seq':1, 'generator':'lookup', 'name':'{} Hz off {} Hz'.format(100-b['rate'],b['rate']), 'request':'ControlRequest(1)'})
 
             if args.control_only:
                 del p['aseq']
