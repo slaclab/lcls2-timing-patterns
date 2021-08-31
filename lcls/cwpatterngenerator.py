@@ -78,6 +78,29 @@ def main():
             if b['rate']<100:
                p['ctrl'].append({'seq':1, 'generator':'lookup', 'name':'{} Hz off {} Hz'.format(100-b['rate'],b['rate']), 'request':'ControlRequest(1)'})
 
+            if i==7 or i==8:
+                rate = b['rate']
+                if rate>1:
+                    p['ctrl'].append({'seq':2, 'name':'1H', 'generator':'train', 'destn':1, 
+                                      'bunch_spacing':1, 'bunches_per_train':1, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
+                    if rate<=10:
+                        p['ctrl'].append({'seq':3, 'name':'TH', 'generator':'train', 'destn':1, 
+                                          'bunch_spacing':91000, 'bunches_per_train':9, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
+                        p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
+                                          'bunch_spacing':91000, 'bunches_per_train':9, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
+                    else:
+                        p['ctrl'].append({'seq':3, 'name':'TH', 'generator':'train', 'destn':1, 
+                                          'bunch_spacing':91000, 'bunches_per_train':10, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
+                        if rate<=50:
+                            p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
+                                      'bunch_spacing':18200, 'bunches_per_train':49, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
+                        elif rate<=100:
+                            p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
+                                              'bunch_spacing':9100, 'bunches_per_train':99, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
+                        else:
+                            p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
+                                              'bunch_spacing':9100, 'bunches_per_train':100, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
+                
             if args.control_only:
                 del p['aseq']
                 del p['beam']
