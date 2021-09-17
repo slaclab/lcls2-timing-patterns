@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import *
 from tools.pattern import Pattern
 import glob
 import os
@@ -49,20 +50,29 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
         self.pattern = pattern
 
         v = QtWidgets.QVBoxLayout()
-
+	Pattern_layout = QGridLayout()
         hb = QtWidgets.QHBoxLayout()
-        hb.addWidget(QtWidgets.QLabel('Mode'))
+	Modelabel = QtWidgets.QLabel('Select Destination')
+	Modelabel.setAlignment(QtCore.Qt.AlignCenter)
+        hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
-        v.addLayout(hb)
+        #v.addLayout(hb)
         self.mode_select = cb
+	Pattern_layout.addWidget(Modelabel, 0, 0)
+	Pattern_layout.addWidget(cb, 0, 1)
+	Pattern_layout.setMargin(1)	
 
         hb = QtWidgets.QHBoxLayout()
-        hb.addWidget(QtWidgets.QLabel('Pattern'))
+	Modelabel = QtWidgets.QLabel('Pattern')
+	Modelabel.setAlignment(QtCore.Qt.AlignCenter)
+        hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
-        v.addLayout(hb)
+        #v.addLayout(hb)
         self.patt_select = cb
+	Pattern_layout.addWidget(Modelabel, 1, 0)
+	Pattern_layout.addWidget(cb, 1, 1)
 
         m = {os.path.basename(f).split('.')[0] for f in glob.glob(path+'/*')}
         m.remove('destn')
@@ -73,7 +83,10 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
         self.mode_select.addItems(modes)
         self.ch = LineEditLabel('1','bunch charge','pC')
         self.ch.edit.editingFinished.connect(self._updateCharge)
-        v.addWidget(self.ch)
+
+	Pattern_layout.addWidget(self.ch, 2, 0,1,0)
+	Pattern_layout.rowStretch(2)
+        v.addLayout(Pattern_layout)
         self.setLayout(v)
         self.mode_select.setCurrentIndex(-1)
         self.patt_select.setCurrentIndex(-1)
