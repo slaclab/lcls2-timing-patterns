@@ -25,7 +25,7 @@ def seq_write_json(name, output, start=None, allow=None, pcdef=None):
         start = len(config['instrset'])
         #  Append a synchronization command
         print('Appending synchronization command for {} {}'.format(name, output))
-        config['instrset'].append(FixedRateSync(6,1))
+        config['instrset'].append(FixedRateSync("1H",1))
         config['instrset'].append(Branch.unconditional(0))
 
     encoding = [len(config['instrset'])]

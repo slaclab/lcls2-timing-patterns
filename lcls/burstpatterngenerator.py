@@ -59,7 +59,7 @@ def main():
 
             start = b['bunch_spacing'] * (b['bunches_per_train'] - 1)
             p['ctrl'] = [{'seq':1, 'name':'end shutter', 'generator':'train',
-                          'destn':1, 'bunch_spacing':1, 'bunches_per_train':1, 'start_bucket':start, 'charge':0, 'repeat':False}]
+                          'destn':1, 'bunch_spacing':1, 'bunches_per_train':1, 'start_bucket':start, 'charge':None, 'repeat':False}]
 
             #  If we need the kicker, set the standby rate for 1 MHz
             if i>lcls.dumpBSY:  

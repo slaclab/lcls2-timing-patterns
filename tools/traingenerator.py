@@ -24,7 +24,7 @@ class TrainGenerator(object):
         self.charge            = charge
         self.repeat            = repeat
         self.async_start       = None if repeat else 0
-
+# Need to add self.reqs[i] as an argument for ControlRequest({})
         print(vars(self))
 
         self.instr = ['instrset = []']
@@ -35,20 +35,34 @@ class TrainGenerator(object):
         nb   = self.bunches_per_train
         w    = 0
         self.instr.append('#   {} bunches / _train'.format(nb))
-        self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge))
+        if (self.charge is not None):
+            self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge))
+        else:
+            #self.instr.append('instrset.append(ControlRequest({}))'.format(self.reqs[i])) 
+            self.instr.append('instrset.append(ControlRequest({}))'.format(1)) # Need to change to the above code later on
         rb = nb-1
         if rb:
             if rb > 0xfff:
                 self.instr.append('iinstr=len(instrset)')
                 self._wait(intb)
-                self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge))
+                if (self.charge is not None):
+                    self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge)) 
+                else:
+                    #self.instr.append('instrset.append(ControlRequest({}))'.format(self.reqs[i])) 
+                    self.instr.append('instrset.append(ControlRequest({}))'.format(1)) # Need to change to the above code later on
+                #self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge))
                 self.instr.append('instrset.append(Branch.conditional(line=iinstr,counter={},value={}))'.format(cc[1],(rb//0x1000) -1))
                 rb = rb & 0xfff
 
             if rb:
                 self.instr.append('iinstr=len(instrset)')
                 self._wait(intb)
-                self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge))
+                if (self.charge is not None):
+                    self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge)) 
+                else:
+                    #self.instr.append('instrset.append(ControlRequest({}))'.format(self.reqs[i])) 
+                    self.instr.append('instrset.append(ControlRequest({}))'.format(1)) # Need to change to the above code later on
+                #self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge))
                 if rb > 1:
                     self.instr.append('instrset.append(Branch.conditional(line=iinstr,counter={},value={}))'.format(cc[0],rb-1))
             w = intb*(nb-1)
@@ -60,14 +74,14 @@ class TrainGenerator(object):
         if intv >= 0xfff:
             self.instr.append('iinstr = len(instrset)')
             #  _Wait for 4095 intervals
-            self.instr.append('instrset.append( FixedRateSync(marker=0, occ=4095) )')
+            self.instr.append('instrset.append( FixedRateSync(marker="910kH", occ=4095) )')
             if intv >= 0x1ffe:
                 #  Branch conditionally to previous instruction
                 self.instr.append('instrset.append( Branch.conditional(line=iinstr, counter=3, value={}) )'.format(int(intv/0xfff)-1))
 
         rint = intv%0xfff
         if rint:
-            self.instr.append('instrset.append( FixedRateSync(marker=0, occ={} ) )'.format(rint))
+            self.instr.append('instrset.append( FixedRateSync(marker="910kH", occ={} ) )'.format(rint))
 
     def _fill_instr(self):
         #  How many times to repeat beam requests in "1 second"

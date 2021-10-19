@@ -6,6 +6,7 @@ class Pattern(object):
 
     def __init__(self,path):
         self.base       = path
+        #self.cwpath     = os.path.dirname(path)+'/CWPatterns'
         self.path       = None
         self.dest       = {}
         self.dest_stats = {}
@@ -15,6 +16,7 @@ class Pattern(object):
         self.allow_seq  = None
         self.destn       = json.load(open(path+'/destn.json','r'))
         self.pcdef       = json.load(open(path+'/pcdef.json','r'))
+        
 
     def _update(self):
         #  Update beam class calculations

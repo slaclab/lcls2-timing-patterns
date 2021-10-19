@@ -46,14 +46,14 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
     chargeChanged  = QtCore.pyqtSignal(int, name='chargeChanged')
 
     def __init__(self, path, pattern):
-        super(PatternSelectionQt,self).__init__('Pattern Select')
+        super(PatternSelectionQt,self).__init__('Burst Pattern Select')
         self.pattern = pattern
 
         v = QtWidgets.QVBoxLayout()
 	Pattern_layout = QGridLayout()
         hb = QtWidgets.QHBoxLayout()
 	Modelabel = QtWidgets.QLabel('Select Destination')
-	Modelabel.setAlignment(QtCore.Qt.AlignCenter)
+	Modelabel.setAlignment(QtCore.Qt.AlignRight)
         hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
@@ -64,8 +64,8 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
 	Pattern_layout.setMargin(1)	
 
         hb = QtWidgets.QHBoxLayout()
-	Modelabel = QtWidgets.QLabel('Pattern')
-	Modelabel.setAlignment(QtCore.Qt.AlignCenter)
+	Modelabel = QtWidgets.QLabel('Pattern("bunches"_"spacing")')
+	Modelabel.setAlignment(QtCore.Qt.AlignRight)
         hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
@@ -75,13 +75,14 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
 	Pattern_layout.addWidget(cb, 1, 1)
 
         m = {os.path.basename(f).split('.')[0] for f in glob.glob(path+'/*')}
+        #print(glob.glob(path))
         m.remove('destn')
         m.remove('pcdef')
         modes = list(m)
         modes.sort()
         self.modes = modes
         self.mode_select.addItems(modes)
-        self.ch = LineEditLabel('1','bunch charge','pC')
+        self.ch = LineEditLabel('1','Bunch Charge Set Point','pC')
         self.ch.edit.editingFinished.connect(self._updateCharge)
 
 	Pattern_layout.addWidget(self.ch, 2, 0,1,0)
@@ -100,6 +101,8 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
         self.patt_select.currentTextChanged.disconnect(self._updatePatt)
         self.mode = mode
         p = {os.path.basename(f).split('.',1)[1] for f in glob.glob(self.pattern.base+'/'+mode+'.*')}
+        #print(p)
+        #print(os.path)
         patts = list(p)
         patts.sort()
         self.patt_select.clear()
@@ -115,8 +118,87 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
 
     def _updateCharge(self):
         self.chargeChanged.emit(int(self.ch.edit.text()))
-       
+#########################       
+class CWPatternSelectionQt(QtWidgets.QGroupBox):
 
+    patternChanged = QtCore.pyqtSignal(str, name='patternChanged')
+    chargeChanged  = QtCore.pyqtSignal(int, name='chargeChanged')
+
+    def __init__(self, path, pattern):
+        super(CWPatternSelectionQt,self).__init__('Continuous Pattern Select')
+        self.pattern = PatternQt(path)
+
+        v = QtWidgets.QVBoxLayout()
+	Pattern_layout = QGridLayout()
+        hb = QtWidgets.QHBoxLayout()
+	Modelabel = QtWidgets.QLabel('Select Destination')
+	Modelabel.setAlignment(QtCore.Qt.AlignRight)
+        hb.addWidget(Modelabel)
+        cb = QtWidgets.QComboBox()
+        hb.addWidget(cb)
+        #v.addLayout(hb)
+        self.mode_select = cb
+	Pattern_layout.addWidget(Modelabel, 0, 0)
+	Pattern_layout.addWidget(cb, 0, 1)
+	Pattern_layout.setMargin(1)	
+
+        hb = QtWidgets.QHBoxLayout()
+	Modelabel = QtWidgets.QLabel('Frequency')
+	Modelabel.setAlignment(QtCore.Qt.AlignRight)
+        hb.addWidget(Modelabel)
+        cb = QtWidgets.QComboBox()
+        hb.addWidget(cb)
+        #v.addLayout(hb)
+        self.patt_select = cb
+	Pattern_layout.addWidget(Modelabel, 1, 0)
+	Pattern_layout.addWidget(cb, 1, 1)
+
+        m = {os.path.basename(f).split('.')[0] for f in glob.glob(path+'/*')}
+        print(glob.glob(path))
+        m.remove('destn')
+        m.remove('pcdef')
+        modes = list(m)
+        modes.sort()
+        self.modes = modes
+        self.mode_select.addItems(modes)
+        self.ch = LineEditLabel('1','Bunch Charge Set Point','pC')
+        self.ch.edit.editingFinished.connect(self._updateCharge)
+
+	Pattern_layout.addWidget(self.ch, 2, 0,1,0)
+	Pattern_layout.rowStretch(2)
+        v.addLayout(Pattern_layout)
+        self.setLayout(v)
+        self.mode_select.setCurrentIndex(-1)
+        self.patt_select.setCurrentIndex(-1)
+        self.mode_select.currentTextChanged.connect(self._updateMode)
+        self.patt_select.currentTextChanged.connect(self._updatePatt)
+        self.patternChanged.connect(pattern.update)
+        self.chargeChanged.connect(pattern.chargeUpdate)
+#        self.mode_select.setCurrentIndex(0)
+
+    def _updateMode(self, mode):
+        self.patt_select.currentTextChanged.disconnect(self._updatePatt)
+        self.mode = mode
+        p = {os.path.basename(f).split('.',1)[1] for f in glob.glob(self.pattern.base+'/'+mode+'.*')}
+        print(p)
+        
+        patts = list(p)
+        patts.sort()
+        self.patt_select.clear()
+        self.patt_select.addItems(patts)
+        self.patt_select.setCurrentIndex(-1)
+        self.patt_select.currentTextChanged.connect(self._updatePatt)
+        self.patt_select.setCurrentIndex(0)
+
+    def _updatePatt(self, patt):
+        self.patt = patt
+        self.patternChanged.emit(self.mode+'.'+patt)
+        self._updateCharge()
+
+    def _updateCharge(self):
+        self.chargeChanged.emit(int(self.ch.edit.text()))
+
+#####################
 class AllowSetSelectionQt(QtWidgets.QGroupBox):
 
     allowseq_changed = QtCore.pyqtSignal(str, name='allowseq_changed')

@@ -12,6 +12,7 @@ class Instruction(object):
 
     def __init__(self, args):
         self.args = args
+        #print(args)
 
     def encoding(self):
         args = [0]*7
@@ -22,11 +23,16 @@ class Instruction(object):
 class FixedRateSync(Instruction):
 
     opcode = 0
+    #FixedIntvs = [1, 13, 91, 910, 9100, 91000, 910000]
+    FixedIntvsDict = {"1H":{"intv":910000,"marker":0}, "10H":{"intv":91000,"marker":1}, "100H":{"intv":9100,"marker":2}, "1kH":{"intv":910,"marker":3}, "10kH":{"intv":91,"marker":4}, "70kH":{"intv":13,"marker":5}, "910kH":{"intv":1,"marker":6}}
 
     def __init__(self, marker, occ=0):
         if occ > 0xfff:
             raise ValueError('FixedRateSync called with occ={}'.format(occ))
-        super(FixedRateSync, self).__init__( (self.opcode, marker, occ) )
+        self.mk = marker
+        markerInt = self.FixedIntvsDict[self.mk]['marker']
+        #marker = self.FixedIntvs.index(self.temp)
+        super(FixedRateSync, self).__init__( (self.opcode, markerInt, occ) )
 
     def _word(self):
         return int((2<<29) | ((self.args[1]&0xf)<<16) | (self.args[2]&0xfff))
@@ -38,7 +44,7 @@ class FixedRateSync(Instruction):
         return 'FixedRateSync({}) # occ({})'.format(fixedRates[self.args[1]],self.args[2])
 
     def execute(self,engine):
-        intv = FixedIntvs[self.args[1]]
+        intv = self.FixedIntvsDict[self.mk]['intv']
         engine.instr += 1
         step = intv*self.args[2]-(engine.frame%intv)
         if step>0:
@@ -48,12 +54,16 @@ class FixedRateSync(Instruction):
 
 class ACRateSync(Instruction):
 
+    ACIntvs    = [1, 2, 6, 12, 60, 120]
+    ACIntvsDict = {"0.5H":{"intv":120,"marker":0}, "1H":{"intv":60,"marker":1}, "5H":{"intv":12,"marker":2}, "10H":{"intv":6,"marker":3}, "30H":{"intv":2,"marker":4}, "60H":{"intv":1,"marker":5}}
     opcode = 1
 
     def __init__(self, timeslotm, marker, occ=0):
         if occ > 0xfff:
             raise ValueError('ACRateSync called with occ={}'.format(occ))
-        super(ACRateSync, self).__init__( (self.opcode, timeslotm, marker, occ) )
+        self.mk = marker
+        markerInt = self.ACIntvsDict[self.mk]['marker']
+        super(ACRateSync, self).__init__( (self.opcode, timeslotm, markerInt, occ) )
 
     def _word(self):
         return int((3<<29) | ((self.args[1]&0x3f)<<23) | ((self.args[2]&0xf)<<16) | (self.args[3]&0xfff))
@@ -65,7 +75,8 @@ class ACRateSync(Instruction):
         return 'ACRateSync({}/0x{:x}) # occ({})'.format(acRates[self.args[2]],self.args[1],self.args[3])
     
     def execute(self,engine):
-        intv = ACIntvs[self.args[2]]
+        intv = self.ACIntvsDict[self.mk]['intv']
+        #intv = ACIntvs[self.args[2]]
         engine.instr += 1
         mask = self.args[1]&0x3f
 #        print('ACRateSync: args {:}  mask {:x}  intv {:}'.format(self.args,mask,intv))

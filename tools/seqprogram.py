@@ -196,7 +196,7 @@ class SeqUser:
     def begin(self, wait=False):
         self.idxaddr.put(0)
         self.idxrun.put(self._idx)
-        self.syncstart.put(FixedRateSync(0)._schedule())
+        self.syncstart.put(FixedRateSync("910kH")._schedule())
         self.start .put(0)
         self.reset .put(1)
         self.reset .put(0)
@@ -206,7 +206,7 @@ class SeqUser:
 
     #  Schedule sequence to be started on a trigger (defaults to 1Hz fixed rate)
     #  Call with subseq=0 for allow sequence reload
-    def schedule(self, subseq=-1, sync=FixedRateSync(6)):
+    def schedule(self, subseq=-1, sync=FixedRateSync("1H")):
         idx = self._idx if subseq<0 else subseq
         self.idxaddr.put(0)
         self.idxrun.put(idx)

@@ -37,7 +37,7 @@ class PatternProgrammer(object):
         profile.append(('init',time.time()))
 
         #  Define restart trigger
-        sync = FixedRateSync(6)  # 1Hz fixed rate
+        sync = FixedRateSync("1H")  # 1Hz fixed rate
         #sync = ACRateSync(4)  # 1Hz AC rate
 
         # 1)  Program sequences
@@ -59,6 +59,7 @@ class PatternProgrammer(object):
                 fname = pattern+'/allow_d{:}_{:}.json'.format(i,j)
                 if os.path.exists(fname):
                     config = json.load(open(fname,mode='r'))
+                    print(config)
                     newseq[j] = seq['eng'].loadfile(fname)[0]
                     start [j] = config['start']
                     pc    [j] = power_class(config,charge)
@@ -143,7 +144,7 @@ class PatternProgrammer(object):
         self.clean()
 
         profile.append(('cleanup',time.time()))
-
+        print(profile)
         logging.debug('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
 
         t0 = profile[0][1]
