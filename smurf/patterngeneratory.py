@@ -1,10 +1,10 @@
-
-import collections
-from shutil import copy
-from tools.traingenerator import *
-from tools.periodicgenerator import *
-from tools.seqsim import *
-from tools.seq import *
+import argparse
+import os
+import json
+from tools.generators import generator
+from tools.seqsim import controlsim
+from tools.seqwrite import ctrl_write
+#from tools.seq import *
 
 #  Convert .py to .json file for faster loading
 def tojson(fname,d={}):
@@ -29,7 +29,12 @@ def main():
     parser.add_argument("-o", "--output"            , required=True , help="file output path")
     args = parser.parse_args()
 
-    patterns = [{'name':'test'  , 
+    try:
+        os.makedirs(args.output)
+    except:
+        pass
+
+    patterns = [{'name':'mode.pattern'  , 
                  'ctrl':[{'seq':0, 'period':[2**v for v in range(9)]},
                          {'seq':1, 'period':[2**v for v in range(9,11)]},
                          {'seq':2, 'period':[3**v for v in range(1,7)]},
@@ -37,12 +42,12 @@ def main():
                          {'seq':4, 'period':[7**v for v in range(1,4)]},
                           ]}]
 
-    TrainArgs = collections.namedtuple('TrainArgs',['output','train_spacing','trains_per_second','bunch_spacing','bunches_per_train','start_bucket','repeat'])
-    targs = {}
-    CtrlArgs = collections.namedtuple('PeriodicArgs',['output','period','start_bucket'])
-    cargs = {}
-    SimArgs = collections.namedtuple('SimArgs',['pattern','start','stop','mode','destn','pcdef'])
-    sargs = {}
+    destn = {}
+    pcdef = {}
+
+    open(args.output+'/destn.json','w').write(json.dumps(destn))
+    open(args.output+'/pcdef.json','w').write(json.dumps(pcdef))
+
     for p in patterns:
         ppath = '{}/{}/'.format(args.output,p['name'])
         try:
@@ -53,20 +58,16 @@ def main():
         if 'ctrl' in p:
             #  Generate the control sequences
             for b in p['ctrl']:
-                cargs['output'] = '{}/{}/c{}.py'.format(args.output,p['name'],b['seq'])
-                cargs['period'           ] = b['period']
-                cargs['start_bucket'     ] = [0]*len(b['period'])
-                PeriodicGenerator(CtrlArgs(**cargs))
-                tojson(cargs['output'])
+                b['generator'] = 'periodic'
+                b['start_bucket'] = [0]*len(b['period'])
+                (name,gen) = generator(b)
+                ctrl_write(name=name,
+                           instr=gen.instr,
+                           output=ppath+'c{}'.format(b['seq']))
 
-        #  Simulate the beam generation/arbitration
-        sargs['pattern'] = '{}/{}'.format(args.output,p['name'])
-        sargs['start'  ] = 0
-        sargs['stop'   ] = 910000
-        sargs['mode'   ] = 'CW'
-        sargs['destn'  ] = {}
-        sargs['pcdef'  ] = []
-        seqsim(SimArgs(**sargs))
+        #  Simulate the control requests
+        controlsim(pattern='{}/{}'.format(args.output,p['name']),
+                   start=0, stop=480000, mode='CW')
 
 if __name__=='__main__':
     main()

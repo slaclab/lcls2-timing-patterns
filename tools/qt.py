@@ -242,10 +242,11 @@ class AllowSetSelectionQt(QtWidgets.QGroupBox):
             b.hide()
 
         ds = self.pattern.dest_stats
-        al = ds['allows']
-        for i in al:
-            self.labels [i].show()
-            self.bgroups[i].show()
+        if ds is not None:
+            al = ds['allows']
+            for i in al:
+                self.labels [i].show()
+                self.bgroups[i].show()
 
         self._changed(0)
 
@@ -277,6 +278,8 @@ class StatisticsTableQt(QtWidgets.QGroupBox):
         self.setLayout(v)
 
     def update(self, key):
+        if self.pattern.dest_stats is None:
+            return
         ikey = toIntList(key)
         stats = self.pattern.dest_stats[key]
         beams = ['D'+str(b) for b in self.pattern.dest_stats['beams']]
