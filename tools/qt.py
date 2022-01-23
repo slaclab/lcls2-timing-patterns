@@ -217,7 +217,7 @@ class AllowSetSelectionQt(QtWidgets.QGroupBox):
             self.labels[i] = l
             grid.addWidget(l,i,0)
             b = QtWidgets.QComboBox()
-            b.addItems([str(c) for c in range(10,-1,-1)])
+            b.addItems([str(c) for c in range(len(self.pattern.pcdef)-1,-1,-1)])
             grid.addWidget(b,i,1)
             b.setCurrentIndex(0)
             b.currentTextChanged.connect(self._changed)
@@ -251,15 +251,16 @@ class AllowSetSelectionQt(QtWidgets.QGroupBox):
         self._changed(0)
 
     def setAllow(self, a, c):
-        self.bgroups[a].setCurrentIndex(10-c)
+        self.bgroups[a].setCurrentText(str(c))
 
     def _changed(self, arg):
         #  Construct the str list of allow sequences
-        seq = [d[10-self.bgroups[i].currentIndex()] for i,d in self.pattern.allow_seq.items()]
+#        seq = [d[10-self.bgroups[i].currentIndex()] for i,d in self.pattern.allow_seq.items()]
+        seq = [d[int(self.bgroups[i].currentText())] for i,d in self.pattern.allow_seq.items()]
         arg = str(tuple(seq))
         self.allowseq_changed.emit(arg)
         #  Construct the str list of beam classes
-        seq = {i:(10-self.bgroups[i].currentIndex()) for i,d in self.pattern.allow_seq.items()}
+        seq = {i:(int(self.bgroups[i].currentText())) for i,d in self.pattern.allow_seq.items()}
         self.class_changed.emit(seq)
 
 

@@ -2,6 +2,8 @@
 #  Allow sequences may be swapped in at any time, so they may require an extra sync;
 #  Put that sync at the end and set the start address in the allow table ('async_start')
 #
+#  This is specific to LCLS2 given the translation of markers to time intervals
+#
 def seq_lookup(arg):
     d = {'0 Hz'       :{'instr':['Branch.unconditional(0)'],
                         'async_start':0},
@@ -74,15 +76,29 @@ def seq_lookup(arg):
          '50 Hz off 50 Hz' :{'instr':['FixedRateSync("100H",1)','BeamRequest(0)','FixedRateSync("100H",1)','Branch.unconditional(0)',
                                       'FixedRateSync("10H",1)','Branch.unconditional(0)'],
                             'async_start':4}
+         '0.5 Hz AC'  :{'instr':['ACRateSync(0,"0.5H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '1 Hz AC'    :{'instr':['ACRateSync(0,"1H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '5 Hz AC'    :{'instr':['ACRateSync(0,"5H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '10 Hz AC'   :{'instr':['ACRateSync(0,"10H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '30 Hz AC'   :{'instr':['ACRateSync(0,"30H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '60 Hz AC'   :{'instr':['ACRateSync(0,"60H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
          }
 
     name = arg['name']
     if name in d:
         instr = ['instrset = []']
         for i in d[name]['instr']:
+            #  Make custom replacements
             if 'request' in arg and i=='BeamRequest(0)':
-                #  Replace BeamRequest with other request
                 i = arg['request']
+            if 'timeslots' in arg and 'ACRateSync(0,' in i:
+                i.replace('ACRateSync(0,','ACRateSync({}'.format(arg['timeslots']))
             instr.append('instrset.append({})'.format(i))
         return {'instr':instr, 'async_start':d[name]['async_start']}
     else:

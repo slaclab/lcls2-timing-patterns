@@ -1,6 +1,8 @@
 import json
 import os
 import logging
+import argparse
+import pprint
 
 class Pattern(object):
 
@@ -13,7 +15,7 @@ class Pattern(object):
         self.ctrl       = {}
         self.ctrl_stats = {}
         self.charge     = None
-        self.allow_seq  = None
+        self.allow_seq  = None   # { destination : { allow_class : max power class } }
         self.destn       = json.load(open(path+'/destn.json','r'))
         self.pcdef       = json.load(open(path+'/pcdef.json','r'))
         
@@ -24,20 +26,22 @@ class Pattern(object):
         #    determine the range of beam classes which they match
         #  Indices are relative: i within 'allows', c within 'beamclass' (full set)
         self.allow_seq = {}
-        if self.dest_stats is not None:
-            for d in self.dest_stats['allows']:
-                beamclass = {}
-                for s in range(14):  # Loop over allow sequences
-                    fname = self.path+'/allow_d{}_{}.json'.format(d,s)
-                    if os.path.exists(fname):
-                        maxQ = json.load(open(fname,'r'))['maxQ']
-                        for c in range(len(maxQ)-1,-1,-1):
-                            if self.charge > maxQ[c]:
-                                break
-                            beamclass[c] = s
-                    else:
-                        break;
-                self.allow_seq[d] = beamclass
+        for d in self.dest_stats['allows']:
+            beamclass = {}
+            for s in range(14):  # Loop over allow sequences
+                fname = self.path+'/allow_d{}_{}.json'.format(d,s)
+                if os.path.exists(fname):
+                    maxQ = json.load(open(fname,'r'))['maxQ']
+                    for c in range(len(maxQ)-1,-1,-1):
+                        if self.charge > maxQ[c]:
+                            break
+                        beamclass[c] = s
+                    print(fname)
+                    print(maxQ)
+                    print(beamclass)
+                else:
+                    break
+            self.allow_seq[d] = beamclass
 
     def update(self, pattern):
         self.path = self.base+'/'+pattern 
@@ -60,4 +64,31 @@ class Pattern(object):
         if self.path:
             self._update()
         
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='train pattern generator')
+    parser.add_argument("-p", "--path"  , required=True , help="files input path")
+    parser.add_argument("-q", "--charge", required=False, help="charge")
+    args = parser.parse_args()
+    
+    (pathname, patternname) = args.path.rsplit('/',1)
+    pp = pprint.PrettyPrinter(indent=4)
+
+    p = Pattern(pathname)
+    print('--destn--')
+    pp.pprint(p.destn)
+    print('--pcdef--')
+    pp.pprint(p.pcdef)
+
+    p.update(patternname)
+    print('--dest stats--')
+    pp.pprint(p.dest_stats)
+    print('--ctrl stats--')
+    pp.pprint(p.ctrl_stats)
+
+    if args.charge:
+        p.chargeUpdate(int(args.charge))
+        print('--allow seq--')
+        pp.pprint(p.allow_seq)
+
 

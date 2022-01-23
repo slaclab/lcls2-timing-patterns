@@ -1,12 +1,15 @@
+#
+#  The 'execute' functions below are LCLS2-specific
+#
 import json
 
 verbose = False
 #verbose = True
 
-fixedRates = ['929kHz','71.4kHz','10.2kHz','1.02kHz','102Hz','10.2Hz','1.02Hz']
-acRates    = ['60Hz','30Hz','10Hz','5Hz','1Hz','0.5Hz']
-FixedIntvs = [1, 13, 91, 910, 9100, 91000, 910000]
-ACIntvs    = [1, 2, 6, 12, 60, 120]
+fixedRates = ['1.02Hz','10.2Hz','102Hz','1.02kHz','10.2kHz','71.4kHz','929kHz']
+acRates    = ['0.5Hz','1Hz','5Hz','10Hz','30Hz','60Hz']
+FixedIntvs = [910000, 91000, 9100, 910, 91, 13, 1]
+ACIntvs    = [120, 60, 12, 6, 2, 1]
 
 class Instruction(object):
 
@@ -23,7 +26,6 @@ class Instruction(object):
 class FixedRateSync(Instruction):
 
     opcode = 0
-    #FixedIntvs = [1, 13, 91, 910, 9100, 91000, 910000]
     FixedIntvsDict = {"1H":{"intv":910000,"marker":0}, "10H":{"intv":91000,"marker":1}, "100H":{"intv":9100,"marker":2}, "1kH":{"intv":910,"marker":3}, "10kH":{"intv":91,"marker":4}, "70kH":{"intv":13,"marker":5}, "910kH":{"intv":1,"marker":6}}
 
     def __init__(self, marker, occ=0):

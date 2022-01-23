@@ -144,6 +144,7 @@ class Ui_MainWindow(object):
         self.pattern_select._updateCharge()
 
 def main():
+    logging.getLogger().setLevel(logging.DEBUG)
     logging.info(QtCore.PYQT_VERSION_STR)
 
     parser = argparse.ArgumentParser(description='simple pattern browser gui')
