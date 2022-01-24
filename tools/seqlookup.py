@@ -75,7 +75,7 @@ def seq_lookup(arg):
                             'async_start':5},
          '50 Hz off 50 Hz' :{'instr':['FixedRateSync("100H",1)','BeamRequest(0)','FixedRateSync("100H",1)','Branch.unconditional(0)',
                                       'FixedRateSync("10H",1)','Branch.unconditional(0)'],
-                            'async_start':4}
+                            'async_start':4},
          '0.5 Hz AC'  :{'instr':['ACRateSync(0,"0.5H",1)','BeamRequest(0)','Branch.unconditional(0)'],
                         'async_start':0},
          '1 Hz AC'    :{'instr':['ACRateSync(0,"1H",1)','BeamRequest(0)','Branch.unconditional(0)'],
