@@ -121,22 +121,31 @@ class Ui_MainWindow(object):
 
         #  Beam class combination selections
 
-        #  Statistics table
-        self.stat_table = StatisticsTableQt(self.pattern)
-        vb.addWidget(self.stat_table)
-
         #self.pi = PatternImage()
         self.pi = PatternWaveform(self.pattern)
 
+        vb2 = QtWidgets.QVBoxLayout()
+
+        #  Destn Statistics table
+        self.dest_table = StatisticsTableQt(self.pattern)
+        vb2.addWidget(self.dest_table)
+
+        #  Ctrl Statistics table
+        self.ctrl_table = CtrlStatsTableQt(self.pattern)
+        vb2.addWidget(self.ctrl_table)
+
         layout.addLayout(vb)
         layout.addWidget(self.pi)
+        layout.addLayout(vb2)
+
         self.centralWidget.setLayout(layout)
         MainWindow.setWindowTitle('pattern browser')
         MainWindow.setCentralWidget(self.centralWidget)
 
         #  Connect signals/slots
         self.pattern.signal.changed.connect(self.allow_set_select.update)
-        self.allow_set_select.allowseq_changed.connect(self.stat_table.update)
+        self.pattern.signal.changed.connect(self.ctrl_table.update)
+        self.allow_set_select.allowseq_changed.connect(self.dest_table.update)
         self.allow_set_select.allowseq_changed.connect(self.pi.update)
         #  Initialize
         self.pattern_select.mode_select.setCurrentIndex(0)

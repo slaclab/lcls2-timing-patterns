@@ -28,7 +28,7 @@ class Engine(object):
         self.done    = False
 
     def frame_number(self):
-        return int(self.acframe) if self.acmode else int(self.frame)
+        return int(self.frame)
 
 class SeqUser:
     def __init__(self, start=0, stop=200, acmode=False):

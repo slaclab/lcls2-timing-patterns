@@ -50,29 +50,29 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
         self.pattern = pattern
 
         v = QtWidgets.QVBoxLayout()
-	Pattern_layout = QGridLayout()
+        Pattern_layout = QGridLayout()
         hb = QtWidgets.QHBoxLayout()
-	Modelabel = QtWidgets.QLabel('Select Destination')
-	Modelabel.setAlignment(QtCore.Qt.AlignRight)
+        Modelabel = QtWidgets.QLabel('Select Destination')
+        Modelabel.setAlignment(QtCore.Qt.AlignRight)
         hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
         #v.addLayout(hb)
         self.mode_select = cb
-	Pattern_layout.addWidget(Modelabel, 0, 0)
-	Pattern_layout.addWidget(cb, 0, 1)
-	Pattern_layout.setMargin(1)	
+        Pattern_layout.addWidget(Modelabel, 0, 0)
+        Pattern_layout.addWidget(cb, 0, 1)
+        Pattern_layout.setMargin(1)	
 
         hb = QtWidgets.QHBoxLayout()
-	Modelabel = QtWidgets.QLabel('Pattern("bunches"_"spacing")')
-	Modelabel.setAlignment(QtCore.Qt.AlignRight)
+        Modelabel = QtWidgets.QLabel('Pattern("bunches"_"spacing")')
+        Modelabel.setAlignment(QtCore.Qt.AlignRight)
         hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
         #v.addLayout(hb)
         self.patt_select = cb
-	Pattern_layout.addWidget(Modelabel, 1, 0)
-	Pattern_layout.addWidget(cb, 1, 1)
+        Pattern_layout.addWidget(Modelabel, 1, 0)
+        Pattern_layout.addWidget(cb, 1, 1)
 
         m = {os.path.basename(f).split('.')[0] for f in glob.glob(path+'/*')}
         #print(glob.glob(path))
@@ -85,8 +85,8 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
         self.ch = LineEditLabel('1','Bunch Charge Set Point','pC')
         self.ch.edit.editingFinished.connect(self._updateCharge)
 
-	Pattern_layout.addWidget(self.ch, 2, 0,1,0)
-	Pattern_layout.rowStretch(2)
+        Pattern_layout.addWidget(self.ch, 2, 0,1,0)
+        Pattern_layout.rowStretch(2)
         v.addLayout(Pattern_layout)
         self.setLayout(v)
         self.mode_select.setCurrentIndex(-1)
@@ -129,29 +129,29 @@ class CWPatternSelectionQt(QtWidgets.QGroupBox):
         self.pattern = PatternQt(path)
 
         v = QtWidgets.QVBoxLayout()
-	Pattern_layout = QGridLayout()
+        Pattern_layout = QGridLayout()
         hb = QtWidgets.QHBoxLayout()
-	Modelabel = QtWidgets.QLabel('Select Destination')
-	Modelabel.setAlignment(QtCore.Qt.AlignRight)
+        Modelabel = QtWidgets.QLabel('Select Destination')
+        Modelabel.setAlignment(QtCore.Qt.AlignRight)
         hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
         #v.addLayout(hb)
         self.mode_select = cb
-	Pattern_layout.addWidget(Modelabel, 0, 0)
-	Pattern_layout.addWidget(cb, 0, 1)
-	Pattern_layout.setMargin(1)	
+        Pattern_layout.addWidget(Modelabel, 0, 0)
+        Pattern_layout.addWidget(cb, 0, 1)
+        Pattern_layout.setMargin(1)	
 
         hb = QtWidgets.QHBoxLayout()
-	Modelabel = QtWidgets.QLabel('Frequency')
-	Modelabel.setAlignment(QtCore.Qt.AlignRight)
+        Modelabel = QtWidgets.QLabel('Frequency')
+        Modelabel.setAlignment(QtCore.Qt.AlignRight)
         hb.addWidget(Modelabel)
         cb = QtWidgets.QComboBox()
         hb.addWidget(cb)
         #v.addLayout(hb)
         self.patt_select = cb
-	Pattern_layout.addWidget(Modelabel, 1, 0)
-	Pattern_layout.addWidget(cb, 1, 1)
+        Pattern_layout.addWidget(Modelabel, 1, 0)
+        Pattern_layout.addWidget(cb, 1, 1)
 
         m = {os.path.basename(f).split('.')[0] for f in glob.glob(path+'/*')}
         print(glob.glob(path))
@@ -164,8 +164,8 @@ class CWPatternSelectionQt(QtWidgets.QGroupBox):
         self.ch = LineEditLabel('1','Bunch Charge Set Point','pC')
         self.ch.edit.editingFinished.connect(self._updateCharge)
 
-	Pattern_layout.addWidget(self.ch, 2, 0,1,0)
-	Pattern_layout.rowStretch(2)
+        Pattern_layout.addWidget(self.ch, 2, 0,1,0)
+        Pattern_layout.rowStretch(2)
         v.addLayout(Pattern_layout)
         self.setLayout(v)
         self.mode_select.setCurrentIndex(-1)
@@ -271,7 +271,7 @@ def toIntList(l):
 
 class StatisticsTableQt(QtWidgets.QGroupBox):
     def __init__(self, pattern):
-        super(StatisticsTableQt,self).__init__('Statistics')
+        super(StatisticsTableQt,self).__init__('Destn Statistics')
         self.pattern = pattern
         v = QtWidgets.QVBoxLayout()
         self.table = QtWidgets.QTableWidget()
@@ -286,12 +286,43 @@ class StatisticsTableQt(QtWidgets.QGroupBox):
         beams = ['D'+str(b) for b in self.pattern.dest_stats['beams']]
 
         names  = ['sum','first','last','min','max']
-        self.table.setRowCount(len(names)) # sum, first, last, min, max
-        self.table.setVerticalHeaderLabels(names)
-        self.table.setHorizontalHeaderLabels(beams)
-        self.table.setColumnCount(len(stats))
+        self.table.setRowCount(len(stats))
+        self.table.setVerticalHeaderLabels(beams)
+        self.table.setHorizontalHeaderLabels(names)
+        self.table.setColumnCount(len(names))
 
-        for col,b in enumerate(self.pattern.dest_stats['beams']):
-            for row,n in enumerate(names):
+        for row,b in enumerate(self.pattern.dest_stats['beams']):
+            for col,n in enumerate(names):
                 self.table.setItem(row,col,QtWidgets.QTableWidgetItem(str(stats[str(b)][n])))
 
+        self.table.resizeColumnsToContents()
+
+
+class CtrlStatsTableQt(QtWidgets.QGroupBox):
+    def __init__(self, pattern):
+        super(CtrlStatsTableQt,self).__init__('Control Statistics')
+        self.pattern = pattern
+        v = QtWidgets.QVBoxLayout()
+        self.table = QtWidgets.QTableWidget()
+        v.addWidget(self.table)
+        self.setLayout(v)
+
+    def update(self):
+        if self.pattern.ctrl_stats is None:
+            return
+        stats = self.pattern.ctrl_stats
+        cnames = ['C{:2s}:{:2s}'.format(str(int(b/16)),str(b%16)) for b in range(18*16)]
+
+        names  = ['sum','first','last','min','max']
+        self.table.setRowCount(len(cnames))
+        self.table.setVerticalHeaderLabels(cnames)
+        self.table.setHorizontalHeaderLabels(names)
+        self.table.setColumnCount(len(names))
+
+        for seq,b in self.pattern.ctrl_stats.items():
+            for bit,s in b.items():
+                row = int(seq)*16+int(bit)
+                for col,n in enumerate(names):
+                    self.table.setItem(row,col,QtWidgets.QTableWidgetItem(str(s[n])))
+
+        self.table.resizeColumnsToContents()

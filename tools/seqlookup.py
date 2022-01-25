@@ -5,6 +5,10 @@
 #  This is specific to LCLS2 given the translation of markers to time intervals
 #
 def seq_lookup(arg):
+    #  Code below assumes soft timeslot is before hard timeslot
+    SoftTsm = 1
+    HardTsm = 8
+    BothTsm = 9
     d = {'0 Hz'       :{'instr':['Branch.unconditional(0)'],
                         'async_start':0},
          '1 Hz'       :{'instr':['BeamRequest(0)','FixedRateSync("1H",1)','Branch.unconditional(0)'],
@@ -88,6 +92,61 @@ def seq_lookup(arg):
                         'async_start':0},
          '60 Hz AC'   :{'instr':['ACRateSync(0,"60H",1)','BeamRequest(0)','Branch.unconditional(0)'],
                         'async_start':0},
+         #  Separate S and H sequences for complementary rates up to 119 Hz
+         '120 Hz AC'  :{'instr':[f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '1 Hz ACS'   :{'instr':[f'ACRateSync({SoftTsm},"1H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '5 Hz ACS'   :{'instr':[f'ACRateSync({SoftTsm},"5H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '10 Hz ACS'  :{'instr':[f'ACRateSync({SoftTsm},"10H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '30 Hz ACS'  :{'instr':[f'ACRateSync({SoftTsm},"30H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '60 Hz ACS'  :{'instr':[f'ACRateSync({SoftTsm},"60H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '90 Hz ACS'  :{'instr':[f'ACRateSync({SoftTsm},"30H",1)','BeamRequest(0)',f'ACRateSync({HardTsm},"30H",1)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,1)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
+         '110 Hz ACS' :{'instr':[f'ACRateSync({SoftTsm},"10H",1)','BeamRequest(0)',f'ACRateSync({HardTsm},"10H",1)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,9)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
+         '115 Hz ACS' :{'instr':[f'ACRateSync({SoftTsm},"5H",1)','BeamRequest(0)',f'ACRateSync({HardTsm},"5H",1)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,21)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
+         '119 Hz ACS' :{'instr':[f'ACRateSync({SoftTsm},"1H",1)','BeamRequest(0)',f'ACRateSync({HardTsm},"1H",1)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,117)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
+         '1 Hz ACH'   :{'instr':[f'ACRateSync({HardTsm},"1H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '5 Hz ACH'   :{'instr':[f'ACRateSync({HardTsm},"5H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '10 Hz ACH'  :{'instr':[f'ACRateSync({HardTsm},"10H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '30 Hz ACH'  :{'instr':[f'ACRateSync({HardTsm},"30H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '60 Hz ACH'  :{'instr':[f'ACRateSync({HardTsm},"60H",1)','BeamRequest(0)','Branch.unconditional(0)'],
+                        'async_start':0},
+         '90 Hz ACH'  :{'instr':[f'ACRateSync({SoftTsm},"30H",1)',f'ACRateSync({HardTsm},"30H",1)','BeamRequest(0)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,1)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
+         '110 Hz ACH' :{'instr':[f'ACRateSync({SoftTsm},"10H",1)',f'ACRateSync({HardTsm},"10H",1)','BeamRequest(0)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,9)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
+         '115 Hz ACH' :{'instr':[f'ACRateSync({SoftTsm},"5H",1)',f'ACRateSync({HardTsm},"5H",1)','BeamRequest(0)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,21)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
+         '119 Hz ACH' :{'instr':[f'ACRateSync({SoftTsm},"1H",1)',f'ACRateSync({HardTsm},"1H",1)','BeamRequest(0)',
+                                 f'ACRateSync({BothTsm},"60H",1)','BeamRequest(0)','Branch.conditional(3,0,117)',
+                                 'Branch.unconditional(0)'],
+                        'async_start':0},
          }
 
     name = arg['name']
@@ -98,7 +157,7 @@ def seq_lookup(arg):
             if 'request' in arg and i=='BeamRequest(0)':
                 i = arg['request']
             if 'timeslots' in arg and 'ACRateSync(0,' in i:
-                i.replace('ACRateSync(0,','ACRateSync({}'.format(arg['timeslots']))
+                i = i.replace('ACRateSync(0,','ACRateSync({},'.format(arg['timeslots']))
             instr.append('instrset.append({})'.format(i))
         return {'instr':instr, 'async_start':d[name]['async_start']}
     else:
