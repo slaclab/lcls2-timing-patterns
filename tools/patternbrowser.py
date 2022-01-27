@@ -23,19 +23,6 @@ class PatternWaveform(pg.GraphicsWindow):
         return c
 
     def update(self, key):
-        buckets = self.pattern.dest[key][0]
-        dests   = self.pattern.dest[key][1] 
-        #  Destination Plot
-        a = self.getItem(0,0)
-        if a is not None:
-            self.removeItem(a)
-        q0 = self.addPlot(title='Pattern',col=0,row=0)
-        q0.setLabel('left'  ,'Destn' )
-#        q0.setLabel('bottom','Bucket')
-        q0.showGrid(True,True)
-        ymax = np.amax(dests,initial=0)
-        ymin = np.amin(dests,initial=15)
-
         #  Plotting lots of consecutive buckets with scatter points is
         #  time consuming.  Replace consecutive points with a line.
         def plot(q, x, y):
@@ -69,8 +56,24 @@ class PatternWaveform(pg.GraphicsWindow):
                        symbolBrush=(255,255,255),
                        symbol='s',pxMode=True, size=2)
 
-        plot(q0,buckets,dests)
-        q0.setRange(yRange=[ymin-0.5,ymax+0.5])
+        if self.pattern.dest is None:
+            q0 = None
+        else:
+            buckets = self.pattern.dest[key][0]
+            dests   = self.pattern.dest[key][1] 
+            #  Destination Plot
+            a = self.getItem(0,0)
+            if a is not None:
+                self.removeItem(a)
+            q0 = self.addPlot(title='Pattern',col=0,row=0)
+            q0.setLabel('left'  ,'Destn' )
+        #        q0.setLabel('bottom','Bucket')
+            q0.showGrid(True,True)
+            ymax = np.amax(dests,initial=0)
+            ymin = np.amin(dests,initial=15)
+
+            plot(q0,buckets,dests)
+            q0.setRange(yRange=[ymin-0.5,ymax+0.5])
 
         #  Control Signal Plot
         a = self.getItem(1,0)
@@ -92,7 +95,8 @@ class PatternWaveform(pg.GraphicsWindow):
         ymin = np.amin(y,initial=255)
         plot(q1,x,y)
         q1.setRange(yRange=[ymin-0.5,ymax+0.5])
-        q1.setXLink(q0)
+        if q0 is not None:
+            q1.setXLink(q0)
 
 
 class Ui_MainWindow(object):
@@ -117,22 +121,31 @@ class Ui_MainWindow(object):
 
         #  Beam class combination selections
 
-        #  Statistics table
-        self.stat_table = StatisticsTableQt(self.pattern)
-        vb.addWidget(self.stat_table)
-
         #self.pi = PatternImage()
         self.pi = PatternWaveform(self.pattern)
 
+        vb2 = QtWidgets.QVBoxLayout()
+
+        #  Destn Statistics table
+        self.dest_table = StatisticsTableQt(self.pattern)
+        vb2.addWidget(self.dest_table)
+
+        #  Ctrl Statistics table
+        self.ctrl_table = CtrlStatsTableQt(self.pattern)
+        vb2.addWidget(self.ctrl_table)
+
         layout.addLayout(vb)
         layout.addWidget(self.pi)
+        layout.addLayout(vb2)
+
         self.centralWidget.setLayout(layout)
         MainWindow.setWindowTitle('pattern browser')
         MainWindow.setCentralWidget(self.centralWidget)
 
         #  Connect signals/slots
         self.pattern.signal.changed.connect(self.allow_set_select.update)
-        self.allow_set_select.allowseq_changed.connect(self.stat_table.update)
+        self.pattern.signal.changed.connect(self.ctrl_table.update)
+        self.allow_set_select.allowseq_changed.connect(self.dest_table.update)
         self.allow_set_select.allowseq_changed.connect(self.pi.update)
         #  Initialize
         self.pattern_select.mode_select.setCurrentIndex(0)
@@ -140,6 +153,7 @@ class Ui_MainWindow(object):
         self.pattern_select._updateCharge()
 
 def main():
+    logging.getLogger().setLevel(logging.DEBUG)
     logging.info(QtCore.PYQT_VERSION_STR)
 
     parser = argparse.ArgumentParser(description='simple pattern browser gui')

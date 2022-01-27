@@ -1,6 +1,8 @@
 import json
 import os
 import logging
+import argparse
+import pprint
 
 class Pattern(object):
 
@@ -13,7 +15,7 @@ class Pattern(object):
         self.ctrl       = {}
         self.ctrl_stats = {}
         self.charge     = None
-        self.allow_seq  = None
+        self.allow_seq  = None   # { destination : { allow_class : max power class } }
         self.destn       = json.load(open(path+'/destn.json','r'))
         self.pcdef       = json.load(open(path+'/pcdef.json','r'))
         
@@ -34,8 +36,11 @@ class Pattern(object):
                         if self.charge > maxQ[c]:
                             break
                         beamclass[c] = s
+                    print(fname)
+                    print(maxQ)
+                    print(beamclass)
                 else:
-                    break;
+                    break
             self.allow_seq[d] = beamclass
 
     def update(self, pattern):
@@ -43,8 +48,12 @@ class Pattern(object):
         logging.debug('Pattern path {}'.format(self.path))
         def load_json(name,path=self.path):
             return json.loads(open(path+'/'+name+'.json','r').read())
-        self.dest_stats = load_json('dest_stats')
-        self.dest       = load_json('dest')
+        try:
+            self.dest_stats = load_json('dest_stats')
+            self.dest       = load_json('dest')
+        except:
+            self.dest_stats = None
+            self.dest       = None
         self.ctrl_stats = load_json('ctrl_stats')
         self.ctrl       = load_json('ctrl')
         if self.charge:
@@ -55,4 +64,31 @@ class Pattern(object):
         if self.path:
             self._update()
         
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='train pattern generator')
+    parser.add_argument("-p", "--path"  , required=True , help="files input path")
+    parser.add_argument("-q", "--charge", required=False, help="charge")
+    args = parser.parse_args()
+    
+    (pathname, patternname) = args.path.rsplit('/',1)
+    pp = pprint.PrettyPrinter(indent=4)
+
+    p = Pattern(pathname)
+    print('--destn--')
+    pp.pprint(p.destn)
+    print('--pcdef--')
+    pp.pprint(p.pcdef)
+
+    p.update(patternname)
+    print('--dest stats--')
+    pp.pprint(p.dest_stats)
+    print('--ctrl stats--')
+    pp.pprint(p.ctrl_stats)
+
+    if args.charge:
+        p.chargeUpdate(int(args.charge))
+        print('--allow seq--')
+        pp.pprint(p.allow_seq)
+
 

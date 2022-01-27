@@ -1,12 +1,15 @@
+#
+#  The 'execute' functions below are LCLS2-specific
+#
 import json
 
 verbose = False
 #verbose = True
 
-fixedRates = ['929kHz','71.4kHz','10.2kHz','1.02kHz','102Hz','10.2Hz','1.02Hz']
-acRates    = ['60Hz','30Hz','10Hz','5Hz','1Hz','0.5Hz']
-FixedIntvs = [1, 13, 91, 910, 9100, 91000, 910000]
-ACIntvs    = [1, 2, 6, 12, 60, 120]
+fixedRates = ['1.02Hz','10.2Hz','102Hz','1.02kHz','10.2kHz','71.4kHz','929kHz']
+acRates    = ['0.5Hz','1Hz','5Hz','10Hz','30Hz','60Hz']
+#FixedIntvs = [910000, 91000, 9100, 910, 91, 13, 1]
+ACIntvs    = [120, 60, 12, 6, 2, 1]
 
 class Instruction(object):
 
@@ -23,7 +26,6 @@ class Instruction(object):
 class FixedRateSync(Instruction):
 
     opcode = 0
-    #FixedIntvs = [1, 13, 91, 910, 9100, 91000, 910000]
     FixedIntvsDict = {"1H":{"intv":910000,"marker":0}, "10H":{"intv":91000,"marker":1}, "100H":{"intv":9100,"marker":2}, "1kH":{"intv":910,"marker":3}, "10kH":{"intv":91,"marker":4}, "70kH":{"intv":13,"marker":5}, "910kH":{"intv":1,"marker":6}}
 
     def __init__(self, marker, occ=0):
@@ -50,17 +52,18 @@ class FixedRateSync(Instruction):
         if step>0:
             engine.frame  += step
             engine.request = 0
-        engine.modes |= 1
 
 class ACRateSync(Instruction):
 
     ACIntvs    = [1, 2, 6, 12, 60, 120]
     ACIntvsDict = {"0.5H":{"intv":120,"marker":0}, "1H":{"intv":60,"marker":1}, "5H":{"intv":12,"marker":2}, "10H":{"intv":6,"marker":3}, "30H":{"intv":2,"marker":4}, "60H":{"intv":1,"marker":5}}
+
     opcode = 1
 
     def __init__(self, timeslotm, marker, occ=0):
         if occ > 0xfff:
             raise ValueError('ACRateSync called with occ={}'.format(occ))
+
         self.mk = marker
         markerInt = self.ACIntvsDict[self.mk]['marker']
         super(ACRateSync, self).__init__( (self.opcode, timeslotm, markerInt, occ) )
@@ -75,21 +78,43 @@ class ACRateSync(Instruction):
         return 'ACRateSync({}/0x{:x}) # occ({})'.format(acRates[self.args[2]],self.args[1],self.args[3])
     
     def execute(self,engine):
-        intv = self.ACIntvsDict[self.mk]['intv']
-        #intv = ACIntvs[self.args[2]]
+        #  Simulate in the 910000 frame per second domain
+
+        #  Start timeslots offset from fixed rates enough that there are no more
+        #    than 360 timeslots within the (0,910000) frame interval
+        acStart    = 42*13
+        #  All intervals are on the 71kHz boundary
+        acIntv     = 1166*13  #  60 Hz
+        tsIntv     = 194*13   # 360 Hz
+
         engine.instr += 1
+        #  Advance to the next marker and timeslot
         mask = self.args[1]&0x3f
-#        print('ACRateSync: args {:}  mask {:x}  intv {:}'.format(self.args,mask,intv))
-        for i in range(self.args[3]):
+        #  Trap 0 mask since it will never return
+        if mask == 0:
+            raise ValueError('ACRateSync called with timeslotmask={} {}'.format(mask,self.args))
+
+        intv = self.ACIntvsDict[self.mk]['intv']
+        for i in range(self.args[3]):  # number of occurrences
+            engine.frame += 1  # always wait at least 1 frame
             while True:
-                engine.acframe += 1
-                ts = engine.acframe % 6
-#                print('  frame {:}  ts {:}'.format(engine.acframe,ts))
-                if ((1<<ts)&mask)!=0 and (int(engine.acframe/6)%intv)==0:
-                    break
+                #  Are we on the right AC marker?
+                acframe = engine.frame - acStart
+                _60Hmk = int(acframe / acIntv)
+                if _60Hmk % self.ACIntvsDict[self.mk]["intv"] == 0:
+                    #  Are we on one of the right timeslots [exactly]?
+                    if (acframe % acIntv) % tsIntv == 0:
+                        _ts = int((acframe % acIntv) / tsIntv)
+                        if ((1<<_ts)&mask) != 0:
+                            break
+                    if (acframe % acIntv) < 5*tsIntv:
+                        #  advance to the next timeslot
+                        engine.frame += tsIntv - ((acframe % acIntv) % tsIntv)
+                        continue
+                #  advance to the next ac marker
+                engine.frame += acIntv - (acframe % acIntv)
 
         engine.request = 0
-        engine.modes  |= 2
 
 class Branch(Instruction):
 

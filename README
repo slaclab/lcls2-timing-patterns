@@ -92,3 +92,5 @@ be launched like so...
    /afs/slac/g/lcls/package/timing/tpg/R1.4.1/buildroot-2019.08-x86_64/bin/mpssim_tst -a 10.0.3.102 -p 2500 -v
 
 In this case, the mps_port command-line parameters should use the value 2500.
+
+..

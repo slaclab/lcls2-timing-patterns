@@ -34,17 +34,13 @@ class Engine(object):
     def __init__(self, acmode=False):
         self.request = 0
         self.instr   = 0
-#        self.frame   = -1  # 1MHz timeslot
-#        self.acframe = -1  # 360Hz timeslot
         self.frame   = 0  # 1MHz timeslot
-        self.acframe = 0  # 360Hz timeslot
         self.acmode  = acmode
-        self.modes   = 0
         self.ccnt    = [0]*4
         self.done    = False
 
     def frame_number(self):
-        return int(self.acframe) if self.acmode else int(self.frame)
+        return int(self.frame)
 
 class SeqUser:
     def __init__(self, start=0, stop=200, acmode=False):
@@ -364,7 +360,7 @@ class SeqUser:
 #  simulations to the 2 highest power classes for each destination (2^6 = 64)
 #
 def allowSetGen(dests,seqs):
-    print('allowSetGen {} {}'.format(dests,seqs))
+#    print('allowSetGen {} {}'.format(dests,seqs))
     nd = len(dests)
     d = [0]*nd
     for i in range(nd):
@@ -420,9 +416,9 @@ def controlsim(pattern, start=0, stop=910000, mode='CW'):
             exec(compile(open(fname).read(), fname, 'exec'), {}, config)
             seqdict['request'][i] = config['instrset']
 
-    t0 = time.clock()
+    t0 = time.perf_counter()
     seq.control(seqdict)
-    t1 = time.clock()
+    t1 = time.perf_counter()
 
     #seq.xdata = compress(seq.xdata)
     fname = pattern+'/ctrl.json'
@@ -460,7 +456,7 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
     #  Loop over allow sequence combinations (across relevant destinations)
     for allowSet in allowSetGen(allows,seq_list):
         key = '{}'.format(allowSet)
-        print(key)
+#        print(key)
         seqdict = {}
         seqdict['request'  ] = {}
         seqdict['allow'    ] = {}
@@ -485,10 +481,10 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
                 raise RuntimeError('Pattern depends upon allow sequence - not found {}'.format(fname))
 
 #        key = str(pc)
-        t0 = time.clock()
+        t0 = time.perf_counter()
         seq.execute(seqdict)
-        t1 = time.clock()
-        print('-- execute {} seconds'.format(t1-t0))
+        t1 = time.perf_counter()
+#        print('-- execute {} seconds'.format(t1-t0))
         #  Compress by identifying runs
         #dest [key] = compress(seq.xdata,seq.ydata)
         dest [key] = (seq.xdata,seq.ydata)

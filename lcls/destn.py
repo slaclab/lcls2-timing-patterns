@@ -17,3 +17,4 @@ def lcls_destn():
     d[8] = {'name':'SXR_Dump'                ,'allow':[4,6,8]}
     d[15] = {'name':'DumpBSY_keep'           ,'allow':[4], 'nogen':True}
     return d
+
