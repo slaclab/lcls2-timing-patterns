@@ -49,5 +49,7 @@ PROGRAMS    += tpr_util
 mpssim_tst_SRCS = mpssim_tst.cc Reg.cc
 mpssim_tst_LIBS = pthread rt dl
 PROGRAMS    += mpssim_tst
+#  Just build this one
+PROGRAMS    = mpssim_tst
 
 include $(CPSW_DIR)/rules.mak
