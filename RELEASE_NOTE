@@ -1,2 +1,6 @@
+R1.1.0 C.B. Mattison (carolina)
+       GUN Restart patterns: single destinations patterns, burst patterns
+       and scripts to load/apply to TPG used for TPG P selector interface
+
 R1.0.0 Justin Chen (justinc) 
        Initial release of RELEASE_NOTE

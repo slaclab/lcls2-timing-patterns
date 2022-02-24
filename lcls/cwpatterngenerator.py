@@ -36,6 +36,8 @@ def main():
               {'name':'1.4 kHz', 'rate':1400},
               {'name':'5 kHz'  , 'rate':5000},
               {'name':'10 kHz' , 'rate':10000},
+              {'name':'23 kHz' , 'rate':22750},
+              {'name':'33 kHz' , 'rate':32500},
               {'name':'46 kHz' , 'rate':45500},
               {'name':'93 kHz' , 'rate':91000},
               {'name':'464 kHz', 'rate':455000},
@@ -45,13 +47,21 @@ def main():
         for i,d in destn.items():
             if 'nogen' in d:
                 continue
-            p = {'name':'{}.{}'.format(d['name'],b['name']),
-                 'beam':[{'generator':'lookup', 'name':b['name'], 'destn':i}]}
+            # When we initialize p, we setup 0Hz for all destinations to clear previous scheduled rates.
+            # p = {'name':'{}.{}'.format(d['name'],b['name']),
+            #      'beam':[{'destn':j, 'generator':'lookup', 'name':'0 Hz'} for j in range (15)]}
+            # p['beam'][i]={'generator':'lookup', 'name':b['name'], 'destn':i}
+            #From Matt's code:
+            p = {}
+            p['name'] = '{}.{}'.format(d['name'],b['name'])
+            p['beam'] = {j:{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j} for j in destn.keys()}  # initialize all destns to 0 Hz
+            p['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
+            p['ctrl'] = {j:{'generator':'lookup', 'name':'0 Hz','request':'ControlRequest(0)'} for j in range(17)}  # initialize all control sequences to none
             #  Set allow sequences. Make last sequence mimic beam pattern for best PC rating
             #  We need a list of allow sequences for each dependent destination
             #  Make them all the same for the bursts
             #  Allow sequences are in increasing order of "power"
-            p['aseq'] = {}
+            p['aseq'] = {j:[{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j}] for j in destn.keys()}  # initialize allow table to one 0 Hz entry
             for a in d['allow']:
                 aseq = []
                 if b['rate']> 0:
@@ -60,46 +70,27 @@ def main():
                     aseq.append({'generator':'lookup', 'name':'1 Hz'})
                 if b['rate']> 10:
                     aseq.append({'generator':'lookup', 'name':'10 Hz'})
-                aseq.append(p['beam'][0])
-                p['aseq'][a] = aseq
+                if b['rate']> 0:
+                    aseq.append(p['beam'][i])
+                    p['aseq'][a] = aseq
+                print(f'aseq[{a}] = {aseq}')
             #  If we need the kicker, 
             #    (1) set the standby rate for full rate if pattern >= 10kHz
             #    (2) request the same rate to the DumpBSY
             #    (3) request 1 Hz to the highest priority engine to the DumpBSY
-            p['ctrl'] = []
+	    # Initializing all Exp Sequences (control seq) to 0Hz
+            p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (18)]
             if i>lcls.dumpBSY:
                  if b['rate']>=10000:
-                     p['ctrl'].append({'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'})
+                    p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}
                  dump = p['beam'][0].copy()
                  dump['destn'] = lcls.dumpBSY  # "DumpBSY"
-                 p['beam'].append( dump )
-                 p['beam'].append( {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY_keep} )
-                 
+                 p['beam'][lcls.dumpBSY] = dump
+                 p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY_keep}
+            # Scheduling BPM Calibration bit:     
             if b['rate']<100:
-               p['ctrl'].append({'seq':1, 'generator':'lookup', 'name':'{} Hz off {} Hz'.format(100-b['rate'],b['rate']), 'request':'ControlRequest(1)'})
+               p['ctrl'][1]={'seq':1, 'generator':'lookup', 'name':'{} Hz off {} Hz'.format(100-b['rate'],b['rate']), 'request':'ControlRequest(1)'}
 
-            if i==7 or i==8:
-                rate = b['rate']
-                if rate>1:
-                    p['ctrl'].append({'seq':2, 'name':'1H', 'generator':'train', 'destn':1, 
-                                      'bunch_spacing':1, 'bunches_per_train':1, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
-                    if rate<=10:
-                        p['ctrl'].append({'seq':3, 'name':'TH', 'generator':'train', 'destn':1, 
-                                          'bunch_spacing':91000, 'bunches_per_train':9, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
-                        p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
-                                          'bunch_spacing':91000, 'bunches_per_train':9, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
-                    else:
-                        p['ctrl'].append({'seq':3, 'name':'TH', 'generator':'train', 'destn':1, 
-                                          'bunch_spacing':91000, 'bunches_per_train':10, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
-                        if rate<=50:
-                            p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
-                                      'bunch_spacing':18200, 'bunches_per_train':49, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
-                        elif rate<=100:
-                            p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
-                                              'bunch_spacing':9100, 'bunches_per_train':99, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
-                        else:
-                            p['ctrl'].append({'seq':4, 'name':'HH', 'generator':'train', 'destn':1, 
-                                              'bunch_spacing':9100, 'bunches_per_train':100, 'start_bucket':(910000/rate), 'charge':0, 'repeat':False})
                 
             if args.control_only:
                 del p['aseq']
@@ -123,12 +114,12 @@ def main():
 
         #  Generate the beam sequences
         if 'beam' in p:
-            for b in p['beam']:
+            for d,b in p['beam'].items():
                 (name,gen) = generator(b)
                 print('name [{}]'.format(name))
                 beam_write(name=name,
                            instr=gen.instr, 
-                           output=ppath+'d{}'.format(b['destn']), 
+                           output=ppath+'d{}'.format(d),
                            allow=destn[b['destn']]['allow'])
 
             #  Add required allow tables to pattern (or generate unique ones)
@@ -157,6 +148,9 @@ def main():
 
         else:
             #  Simulate the beam generation/arbitration and conctrol requests
+            print('------')
+            print(f'pattern: {p}')
+            print('------')
             seqsim(pattern='{}/{}'.format(args.output,p['name']),
                    start=0, stop=910000, mode='CW',
                    destn_list=destn, pc_list=range(14), seq_list=p['aseq'])

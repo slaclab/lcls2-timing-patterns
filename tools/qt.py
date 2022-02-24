@@ -141,7 +141,6 @@ class CWPatternSelectionQt(QtWidgets.QGroupBox):
         Pattern_layout.addWidget(Modelabel, 0, 0)
         Pattern_layout.addWidget(cb, 0, 1)
         Pattern_layout.setMargin(1)	
-
         hb = QtWidgets.QHBoxLayout()
         Modelabel = QtWidgets.QLabel('Frequency')
         Modelabel.setAlignment(QtCore.Qt.AlignRight)

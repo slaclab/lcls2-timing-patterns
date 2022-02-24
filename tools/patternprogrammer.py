@@ -26,7 +26,7 @@ class PatternProgrammer(object):
         #    allow seq[14]=bcs jump,  allow seq[15]=manual jump
         self.allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(14)]
         self.beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i))} for i in range(16)]
-        self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(18)]
+        self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(17)]
         self.allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
         self.restartPv  = Pv(pv+':GBLSEQRESET')
         self.chargePv   = Pv(pv+':BEAMCHRG')
@@ -58,12 +58,14 @@ class PatternProgrammer(object):
                 #  Load the sequence from the pattern directory, if it exists
                 fname = pattern+'/allow_d{:}_{:}.json'.format(i,j)
                 if os.path.exists(fname):
+                    logging.debug(f'Loading [{fname}]')
                     config = json.load(open(fname,mode='r'))
                     print(config)
                     newseq[j] = seq['eng'].loadfile(fname)[0]
                     start [j] = config['start']
                     pc    [j] = power_class(config,charge)
                 else:
+                    logging.warning(f'[{fname}] not found')
                     pc    [j] = -1
                     break
 
@@ -91,9 +93,12 @@ class PatternProgrammer(object):
         for i,seq in enumerate(self.controlSeq):
             fname = pattern+'/c{:}.json'.format(i)
             if os.path.exists(fname):
+                logging.debug(f'Loading [{fname}]')
                 seq['remove'] = seq['eng'].idx_list()
                 subseq = seq['eng'].loadfile(fname)[0]
                 seq['eng'].schedule(subseq,sync)
+            else:
+                logging.warning(f'[{fname}] not found')
 
         profile.append(('ctrlseq_prog',time.time()))
 
@@ -105,10 +110,12 @@ class PatternProgrammer(object):
             seq['remove'] = seq['eng'].idx_list()
             fname = pattern+'/d{:}.json'.format(i)
             if os.path.exists(fname):
+                logging.debug(f'Loading [{fname}]')
                 (subseq,allow) = seq['eng'].loadfile(fname)
                 seq['eng'].require(allow) 
                 seq['eng'].destn  (i)
             else:
+                logging.warning(f'[{fname}] not found')
                 subseq = 0
             seq['eng'].schedule(subseq,sync)
 

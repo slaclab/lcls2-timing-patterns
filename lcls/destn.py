@@ -1,20 +1,16 @@
 #  Dictionary index is synonymous with beam request engine index
 #  It's also synonymous with the destination index except for "keep"
 
-dumpBSY = 4       # destination id for dump (mitigation device)
+dumpBSY = 2       # destination id for dump (mitigation device)
 dumpBSY_keep = 15 # engine for maintaining 1Hz to dump 
 
 def lcls_destn():
     d = {}
-    d[0] = {'name':'Laser_Shutter'           ,'allow':[0]}
-    d[1] = {'name':'Yag01b'                  ,'allow':[1]}
-    d[2] = {'name':'Laser_Heater_Screen'     ,'allow':[2]}
-    d[3] = {'name':'Diag_Line_0'             ,'allow':[3]}
-    d[4] = {'name':'DumpBSY'                 ,'allow':[4]}
-    d[5] = {'name':'TDUND'                   ,'allow':[4,5]}
-    d[6] = {'name':'TDUNDS'                  ,'allow':[4,6]}
-    d[7] = {'name':'HXR_Dump'                ,'allow':[4,5,7]}
-    d[8] = {'name':'SXR_Dump'                ,'allow':[4,6,8]}
-    d[15] = {'name':'DumpBSY_keep'           ,'allow':[4], 'nogen':True}
+    d[0] = {'name':'0 SC1 Laser'           ,'allow':[0]}
+    d[1] = {'name':'1 SC1 DIAG0'           ,'allow':[1]}
+    d[2] = {'name':'2 SC1 DUMPBSY'         ,'allow':[2]}
+    d[3] = {'name':'3 SC1 DUMPHXR'         ,'allow':[2,3]}
+    d[4] = {'name':'4 SC1 DUMPSXR'         ,'allow':[2,4]}
+    d[5] = {'name':'5 SC1 LESA'            ,'allow':[2,5]}
+    d[15] = {'name':'15 DumpBSY_keep'           ,'allow':[2], 'nogen':True}
     return d
-
