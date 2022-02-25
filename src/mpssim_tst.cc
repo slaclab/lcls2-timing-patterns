@@ -150,7 +150,8 @@ int main(int argc, char** argv) {
     case 'h':
       usage(argv[0]); return 1;
     default:
-      break;
+      printf("-- Option %c not understood --\n",c);
+      usage(argv[0]); return -1;
     }
   }
 
