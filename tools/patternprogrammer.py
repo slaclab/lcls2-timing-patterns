@@ -24,9 +24,9 @@ class PatternProgrammer(object):
     def __init__(self, pv):
         #  Setup access to all sequence engines
         #    allow seq[14]=bcs jump,  allow seq[15]=manual jump
-        self.allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(14)]
-        self.beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i))} for i in range(16)]
-        self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(17)]
+        self.allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i)),'load':[],'apply':[]} for i in range(14)]
+        self.beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i)),'load':[],'apply':[]} for i in range(16)]
+        self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i)),'load':[],'apply':[]} for i in range(17)]
         self.allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
         self.restartPv  = Pv(pv+':GBLSEQRESET')
         self.chargePv   = Pv(pv+':BEAMCHRG')
@@ -48,8 +48,10 @@ class PatternProgrammer(object):
         #
         for i,seq in enumerate(self.allowSeq):
             logging.debug('allowSeq {}'.format(i))
-            seq['remove'] = seq['eng'].idx_list()
-            
+
+            # clean up what was previously loaded but not applied
+            seq['eng'].remove(seq['load'])
+
             newseq = {}
             start  = {}
             pc     = {}
@@ -60,7 +62,7 @@ class PatternProgrammer(object):
                 if os.path.exists(fname):
                     logging.debug(f'Loading [{fname}]')
                     config = json.load(open(fname,mode='r'))
-                    print(config)
+                    logging.debug(config)
                     newseq[j] = seq['eng'].loadfile(fname)[0]
                     start [j] = config['start']
                     pc    [j] = power_class(config,charge)
@@ -83,6 +85,7 @@ class PatternProgrammer(object):
                 #  Assign the subsequence number and power class
                 self.allowTbl[i].seq(j,lpc,lseq,lsta)
             seq['eng'].schedule(0,sync)
+            seq['load'] = newseq.values()
 
         profile.append(('allowseq_prog',time.time()))
             
@@ -91,14 +94,18 @@ class PatternProgrammer(object):
         #    Reloaded entirely on sync marker
         #
         for i,seq in enumerate(self.controlSeq):
+            # clean up what was previously loaded but not applied
+            seq['eng'].remove(seq['load'])
+
             fname = pattern+'/c{:}.json'.format(i)
             if os.path.exists(fname):
                 logging.debug(f'Loading [{fname}]')
-                seq['remove'] = seq['eng'].idx_list()
                 subseq = seq['eng'].loadfile(fname)[0]
                 seq['eng'].schedule(subseq,sync)
+                seq['load'] = [subseq,]
             else:
                 logging.warning(f'[{fname}] not found')
+                seq['load'] = []
 
         profile.append(('ctrlseq_prog',time.time()))
 
@@ -107,16 +114,20 @@ class PatternProgrammer(object):
         #    Reloaded entirely on sync marker
         #
         for i,seq in enumerate(self.beamSeq):
-            seq['remove'] = seq['eng'].idx_list()
+            # clean up what was previously loaded but not applied
+            seq['eng'].remove(seq['load'])
+
             fname = pattern+'/d{:}.json'.format(i)
             if os.path.exists(fname):
                 logging.debug(f'Loading [{fname}]')
                 (subseq,allow) = seq['eng'].loadfile(fname)
                 seq['eng'].require(allow) 
                 seq['eng'].destn  (i)
+                seq['load'] = [subseq,]
             else:
                 logging.warning(f'[{fname}] not found')
                 subseq = 0
+                seq['load'] = []
             seq['eng'].schedule(subseq,sync)
 
         self.chargePv  .put(charge)
@@ -151,7 +162,7 @@ class PatternProgrammer(object):
         self.clean()
 
         profile.append(('cleanup',time.time()))
-        print(profile)
+        logging.debug(profile)
         logging.debug('Total time {} sec'.format(profile[-1][1]-profile[0][1]))
 
         t0 = profile[0][1]
@@ -161,18 +172,23 @@ class PatternProgrammer(object):
 
     def clean(self):
 
+        #  remove everything except what was just applied
+        def _clean(seq):
+            seq['apply'] = seq['load']
+            seq['load'] = []
+            idx_list = seq['eng'].idx_list()
+            rm_list = [i for i in idx_list if i not in seq['apply']]
+            #idx_list.remove(seq['apply'])
+            seq['eng'].remove(rm_list)
+
         for seq in self.allowSeq:
-            seq['eng'].remove(seq['remove'])
-            seq['remove'] = []
-        
+            _clean(seq)
+
         for seq in self.controlSeq:
-            if 'remove' in seq:
-                seq['eng'].remove(seq['remove'])
-                seq['remove'] = []
+            _clean(seq)
 
         for seq in self.beamSeq:
-            seq['eng'].remove(seq['remove'])
-            seq['remove'] = []
+            _clean(seq)
 
 def main(args):
     p = PatternProgrammer(args.pv)

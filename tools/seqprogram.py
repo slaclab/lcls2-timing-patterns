@@ -1,6 +1,7 @@
 import time
 from tools.seq import *
-from tools.pv_ca import Pv
+#from tools.pv_ca import Pv
+from tools.pv_ca_fast import Pv
 from threading import Lock
 import argparse
 import logging
