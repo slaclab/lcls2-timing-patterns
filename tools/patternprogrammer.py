@@ -67,7 +67,7 @@ class PatternProgrammer(object):
                     start [j] = config['start']
                     pc    [j] = power_class(config,charge)
                 else:
-                    logging.warning(f'[{fname}] not found')
+                    logging.debug(f'[{fname}] not found')
                     pc    [j] = -1
                     break
 
@@ -104,7 +104,7 @@ class PatternProgrammer(object):
                 seq['eng'].schedule(subseq,sync)
                 seq['load'] = [subseq,]
             else:
-                logging.warning(f'[{fname}] not found')
+                logging.debug(f'[{fname}] not found')
                 seq['load'] = []
 
         profile.append(('ctrlseq_prog',time.time()))
@@ -125,7 +125,7 @@ class PatternProgrammer(object):
                 seq['eng'].destn  (i)
                 seq['load'] = [subseq,]
             else:
-                logging.warning(f'[{fname}] not found')
+                logging.debug(f'[{fname}] not found')
                 subseq = 0
                 seq['load'] = []
             seq['eng'].schedule(subseq,sync)

@@ -7,6 +7,7 @@ import argparse
 import logging
 
 class SeqUser:
+
     def __init__(self, base):
         prefix = base
         self.base     = prefix
@@ -17,8 +18,8 @@ class SeqUser:
         self.seqname  = Pv(prefix+':SEQ00DESC')
         self.seqbname = Pv(prefix+':SEQ00BDESC')
         self.idxseqr  = Pv(prefix+':RMVIDX')
-        self.seqr     = Pv(prefix+':RMVSEQ')
-        self.insert   = Pv(prefix+':INS')
+#        self.seqr     = Pv(prefix+':RMVSEQ')
+#        self.insert   = Pv(prefix+':INS')
         self.cancel   = Pv(prefix+':CNSL')
         self.idxrun   = Pv(prefix+':RUNIDX')
         self.idxaddr  = Pv(prefix+':JUMPADDR')
@@ -28,16 +29,16 @@ class SeqUser:
         self.reqmask  = Pv(prefix+':REQMASK')
         self.dest     = Pv(prefix+':DEST')
 
+        self._newidx = False
+        def idx_cb(err,self=self):
+            self._newidx = True
+            
+        self.newidx   = Pv(prefix+':SEQ00IDX',callback=idx_cb)
+
 #  Where did this come from?
 #        self.running  = Pv(prefix+':RUNNING', self.changed)
         self._idx     = 0
         self.lock     = None
-
-#    def changed(self,err=None):
-#        q = self.running.__value__
-#        if q==0 and self.lock!=None:
-#            self.lock.release()
-#            self.lock=None
 
     def require(self, allow):
         allow_mask = 0
@@ -76,9 +77,6 @@ class SeqUser:
         for idx in idxl:
             logging.debug( 'Removing seq %d'%idx)
             self.idxseqr.put(idx)
-            self.seqr.put(1)
-            self.seqr.put(0)
-            time.sleep(0.1)
 
     # Remove all existing subsequences
     def clean(self):
@@ -89,14 +87,9 @@ class SeqUser:
             for idx in idxl:
                 logging.debug( 'Removing seq %d'%idx)
                 self.idxseqr.put(idx)
-                self.seqr.put(1)
-                self.seqr.put(0)
-                time.sleep(0.1)
         elif ridx > 1:
             logging.debug( 'Removing seq %d'%ridx)
             self.idxseqr.put(ridx)
-            self.seqr.put(1)
-            self.seqr.put(0)
 
     #  Load new sequence and return subsequence index
     def load(self, title=None, instrset=None, descset=None):
@@ -111,24 +104,16 @@ class SeqUser:
 
         logging.debug( encoding)
 
+        self._newidx = False
         self.instr.put( tuple(encoding) )
-        time.sleep(0.2)
 
-        ninstr = self.ninstr.get()
-        if ninstr != len(instrset):
-            logging.error( 'Error: ninstr invalid %u (%u)' % (ninstr, len(instrset)))
-            return
-
-        logging.debug( 'Confirmed ninstr %d'%ninstr)
-
-        self.insert.put(1)
-        self.insert.put(0)
-
-        #  How to handshake the insert.put -> idxseq.get (RPC?)
-        time.sleep(0.2)
+        while(True):
+            if self._newidx:
+                break
+            time.sleep(0.01)
 
         #  Get the assigned sequence num
-        idx = self.idxseq[0].get()
+        idx = self.newidx.__value__
         if idx < 2:
             logging.error( 'Error: subsequence index  invalid (%u)' % idx)
             raise RuntimeError("Sequence failed")
@@ -159,23 +144,16 @@ class SeqUser:
 
         logging.debug(encoding)
 
+        self._newidx = False
         self.instr.put( tuple(encoding) )
-        time.sleep(0.2)
 
-        ninstr = self.ninstr.get()
-        if ninstr != ninstw:
-            raise RuntimeError('ninstr invalid %u (%u)' % (ninstr, ninstw))
-
-        logging.debug( 'Confirmed ninstr %d'%ninstr)
-
-        self.insert.put(1)
-        self.insert.put(0)
-
-        #  How to handshake the insert.put -> idxseq.get (RPC?)
-        time.sleep(0.2)
+        while(True):
+            if self._newidx:
+                break
+            time.sleep(0.01)
 
         #  Get the assigned sequence num
-        idx = self.idxseq[0].get()
+        idx = self.newidx.__value__
         if idx < 2:
             logging.error( 'Error: subsequence index  invalid (%u)  fname %s' % (idx,fname))
             raise RuntimeError("Sequence failed")
@@ -216,7 +194,7 @@ class SeqUser:
 
     #  Stop sequence, clean out all subsequences, load new sequence, and start
     def execute(self, title, instrset, descset=None):
-        self.insert.put(0)
+#        self.insert.put(0)
         self.stop ()
         self.clean()
         self.load (title,instrset,descset)
