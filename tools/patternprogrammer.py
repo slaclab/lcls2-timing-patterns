@@ -174,11 +174,13 @@ class PatternProgrammer(object):
 
         #  remove everything except what was just applied
         def _clean(seq):
-            seq['apply'] = seq['load']
-            seq['load'] = []
+            # cache loaded subseqs. load is empty if already applied
+            if len(seq['load']):  
+                seq['apply'] = seq['load']
+                seq['load'] = []
             idx_list = seq['eng'].idx_list()
+            #idx_list.remove(seq['apply']) # python doesnt have this
             rm_list = [i for i in idx_list if i not in seq['apply']]
-            #idx_list.remove(seq['apply'])
             seq['eng'].remove(rm_list)
 
         for seq in self.allowSeq:
