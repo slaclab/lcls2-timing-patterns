@@ -44,18 +44,23 @@ def main():
         for i,d in destn.items():
             if 'nogen' in d:
                 continue
-            p = {'name':'{}.{}'.format(d['name'],b['name']),
-                 'beam':[{'generator':'train','destn':i,
-                          'bunch_spacing':b['bunch_spacing'], 'bunches_per_train':b['bunches_per_train'],
-                          'start_bucket':0, 'charge':0, 'repeat':False}]}
+            # When we initialize p, we setup 0Hz for all destinations to clear previous scheduled rates.
+            p = {}
+            p['name'] = '{}.{}'.format(d['name'],b['name'])
+            p['beam'] = {j:{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j} for j in destn.keys()}  # initialize all destns to 0 Hz
+            p['ctrl'] = {j:{'generator':'lookup', 'name':'0 Hz','request':'ControlRequest(0)'} for j in range(17)}  # initialize all control sequences to none
+            
+            #  Now, beam to the targeted destination
+            p['beam'][i] = {'generator':'train','destn':i,
+                            'bunch_spacing':b['bunch_spacing'], 'bunches_per_train':b['bunches_per_train'],
+                            'start_bucket':0, 'charge':0, 'repeat':False}
             #  Set allow sequences. Make last sequence mimic burst pattern for best PC rating
             #  We need a list of allow sequences for each dependent destination
             #  Make them all the same for the bursts
-            p['aseq'] = {}
+            p['aseq'] = {j:[{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j}] for j in destn.keys()}  # initialize allow table to one 0 Hz entry
             for a in d['allow']:
-                p['aseq'][a] = [{'generator':'lookup', 'name':'0 Hz'},
-                                {'generator':'lookup', 'name':'10 Hz'},
-                                p['beam'][0]]
+                p['aseq'][a].append({'generator':'lookup', 'name':'10 Hz'})
+                p['aseq'][a].append(p['beam'][0])
 
             start = b['bunch_spacing'] * (b['bunches_per_train'] - 1)
             p['ctrl'] = [{'seq':1, 'name':'end shutter', 'generator':'train',
