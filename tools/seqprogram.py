@@ -115,8 +115,9 @@ class SeqUser:
         #  Get the assigned sequence num
         idx = self.newidx.__value__
         if idx < 2:
-            logging.error( 'Error: subsequence index  invalid (%u)' % idx)
-            raise RuntimeError("Sequence failed")
+            err = f'Failed to load instructions for {self.base}')
+            logging.error(err)
+            raise RuntimeError(err)
 
         logging.debug( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
 

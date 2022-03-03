@@ -10,6 +10,7 @@
 
 import logging
 import sys
+import glob
 from tools.patternprogrammer import *
 from tools.pv_ca             import *
 from lcls.destn              import *
@@ -26,27 +27,52 @@ do_bu_load  = False
 do_apply    = False
 
 class DestPv:
-    def __init__(self, base, mode, dst):
+    def __init__(self, base, mode, dst, path):
         self.dst     = dst
         self.mode    = mode
         self.name    = lcls_destn()[dst]['name']
+
         pvbase = f'{base}:SC{mode:02d}:DST{dst:02d}_DES_'
         self.rate    = Pv(pvbase+'FREQUENCY')
         self.bunches = Pv(pvbase+'BUNCHES')
         self.spaces  = Pv(pvbase+'SPACES')
 
+        name = path+'/'+self.name+'.'
+        self.patterns = [p[len(name):] for p in glob.iglob(f'{name}*')]
+        logging.debug(f'patterns {name} {self.patterns}')
+
+        def callback(err,self=self):
+            self.callback(err)
+
+        self.rate   .get()
+        self.bunches.get()
+        self.bunches.monitor(callback)
+
+        self.spaces.get()
+        self.spaces.monitor(callback)
+
+        self.pattern_found = False
+
+        self.callback(None)
+
+    def callback(self,err):
+        name = self.burst_pattern(path='').split('.')[1]
+        self.pattern_found = name in self.patterns
+        logging.debug(f'{self.pattern_found} : {name}')
+
     def get_rate(self):
         rate = self.rate.get()
-        if rate=='':
+        logging.debug(f'get_rate {self.dst} {rate}')
+        if rate=='' or rate=='0':
             rate='0Hz'
         return rate
 
     def get_bunches(self):
-        bunches = int(self.bunches.get())  # float pv should be int
+        bunches = int(self.bunches.__value__)
         return bunches
 
     def get_spaces(self):
-        spaces = int(self.spaces.get())   # float pv should be int
+        spaces = int(self.spaces.__value__)
         return spaces
 
     def cw_selected(self):
@@ -62,10 +88,29 @@ class DestPv:
 
     def burst_pattern(self,path):
         logging.debug(f'{self.name} burst_pattern [{self.get_bunches()}] [{self.get_spaces()}]')
-        if self.get_bunches()==0 or self.get_spaces()==0:  # No rate pattern
-            return f'{path}/{self.name}.0 Hz'
-        return f'{path}/{self.name}.{self.get_bunches()}b_{self.get_spaces()}'
+        if self.get_bunches()<2:
+            result = f'{path}/{self.name}.{self.get_bunches()}b'
+        else:
+            result = f'{path}/{self.name}.{self.get_bunches()}b_{self.get_spaces()}'
+        return result
 
+class PatternFound:
+    def __init__(self, base, dst):
+        self.value   = Pv(base+':BURST_PATTERN_FOUND')
+        self.desc    = Pv(base+':BURST_PATTERN_FOUND.DESC')
+        self.dst     = dst
+        self.found   = False
+
+    def process(self):
+        found = False
+        for i in self.dst:
+            if i.pattern_found:
+                found = True
+                break
+        if found!=self.found:
+            self.found = found
+            self.value.put(1 if found else 0)
+            
 def main(args):
     global do_cw_load, do_bu_load, do_apply
 
@@ -75,9 +120,10 @@ def main(args):
     bu_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartBurst'
     chargpv = Pv(args.pv+':BUNCH_CHARGE')
     logging.debug(f'BUNCH_CHARGE {chargpv.get()}')
-
-    laser       = DestPv(base=args.pv,mode=11,dst=0)
-    dumpbsy     = DestPv(base=args.pv,mode=11,dst=2)
+    
+    laser       = DestPv(base=args.pv,mode=11,dst=0,path=bu_path)
+    dumpbsy     = DestPv(base=args.pv,mode=11,dst=2,path=bu_path)
+    found       = PatternFound(base=args.pv,dst=[laser,dumpbsy])
 
     cw_load_pv  = Pv(args.pv+':CONTINUOUS_LOAD' )
     bu_load_pv  = Pv(args.pv+':BURST_LOAD' )
@@ -155,6 +201,7 @@ def main(args):
                 program.apply()
 #                apply_pv.put(0)
                 logging.info('Apply complete')
+        found.process()
         hbeat += 1
         logging.debug(f'hbeat {hbeat}')
 #        hbeatpv.put(alive)
