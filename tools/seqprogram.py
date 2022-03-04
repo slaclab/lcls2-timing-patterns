@@ -18,8 +18,6 @@ class SeqUser:
         self.seqname  = Pv(prefix+':SEQ00DESC')
         self.seqbname = Pv(prefix+':SEQ00BDESC')
         self.idxseqr  = Pv(prefix+':RMVIDX')
-#        self.seqr     = Pv(prefix+':RMVSEQ')
-#        self.insert   = Pv(prefix+':INS')
         self.cancel   = Pv(prefix+':CNSL')
         self.idxrun   = Pv(prefix+':RUNIDX')
         self.idxaddr  = Pv(prefix+':JUMPADDR')
@@ -33,7 +31,7 @@ class SeqUser:
         def idx_cb(err,self=self):
             self._newidx = True
             
-        self.newidx   = Pv(prefix+':SEQ00IDX',callback=idx_cb)
+        self.newidx   = Pv(prefix+':LSTIDX',callback=idx_cb)
 
 #  Where did this come from?
 #        self.running  = Pv(prefix+':RUNNING', self.changed)
@@ -115,7 +113,7 @@ class SeqUser:
         #  Get the assigned sequence num
         idx = self.newidx.__value__
         if idx < 2:
-            err = f'Failed to load instructions for {self.base}')
+            err = f'Failed to load instructions for {self.base}'
             logging.error(err)
             raise RuntimeError(err)
 

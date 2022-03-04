@@ -103,11 +103,18 @@ class PatternFound:
 
     def process(self):
         found = False
+        dst = self.dst[0]
+        #  Find the last destination that has burst pattern selected
         for i in self.dst:
-            if i.pattern_found:
-                found = True
-                break
-        if found!=self.found:
+            if i.burst_selected():
+                dst = i
+        #  Is its pattern found?
+        if dst.pattern_found:
+            logging.debug(f'PatternFound: {i}')
+            found = True
+#        if found!=self.found:
+        if True:
+            logging.debug(f'PatternFound: {found}')
             self.found = found
             self.value.put(1 if found else 0)
             

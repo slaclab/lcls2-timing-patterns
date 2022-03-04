@@ -147,7 +147,7 @@ def main():
                        start=0, stop=910000, mode='CW')
 
         else:
-            #  Simulate the beam generation/arbitration and conctrol requests
+            #  Simulate the beam generation/arbitration and control requests
             print('------')
             print(f'pattern: {p}')
             print('------')
