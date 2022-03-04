@@ -92,12 +92,12 @@ def main():
 
         #  Generate the beam sequences
         if 'beam' in p:
-            for b in p['beam']:
+            for d,b in p['beam'].items():
                 (name,gen) = generator(b)
                 print('name [{}]'.format(name))
                 beam_write(name=name,
                            instr=gen.instr, 
-                           output=ppath+'d{}'.format(b['destn']), 
+                           output=ppath+'d{}'.format(d),
                            allow=destn[b['destn']]['allow'])
 
             #  Add required allow tables to pattern (or generate unique ones)
