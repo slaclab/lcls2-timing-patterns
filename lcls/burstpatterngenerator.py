@@ -7,15 +7,78 @@ from tools.generators import generator
 from tools.seqwrite import beam_write, allow_write, ctrl_write
 import lcls
 import json
+from multiprocessing import Pool
+import logging
+import time
 
+args  = None
+destn = lcls.lcls_destn()
+pcdef = lcls.lcls_pcdef()
+
+def generate_pattern(p):
+    ppath = '{}/{}/'.format(args.output,p['name'])
+    tbegin = time.perf_counter()
+    logging.info(f'Begin {ppath}')
+    try:
+        os.mkdir(ppath)
+    except:
+        pass
+
+    #  Generate the beam sequences
+    if 'beam' in p:
+        for d,b in p['beam'].items():
+            (name,gen) = generator(b)
+            logging.debug('name [{}]'.format(name))
+            beam_write(name=name,
+                       instr=gen.instr, 
+                       output=ppath+'d{}'.format(d),
+                       allow=destn[b['destn']]['allow'])
+
+        #  Add required allow tables to pattern (or generate unique ones)
+        #  Need to be selective here, else the combinatorics are huge (slow simulation)
+        for d,a in p['aseq'].items():
+            for i,seq in enumerate(a):
+                logging.debug('seq {}'.format(seq))
+                (name,gen) = generator(seq)
+                allow_write(name=name,
+                            instr=gen.instr,
+                            start=0,     # start is used at reset, repeat=False, 
+                            pcdef=pcdef, # keep alignment of periodic and burst
+                            output=ppath+'allow_d{}_{}'.format(d,i))
+
+    if 'ctrl' in p:
+        #  Generate the control sequences
+        for b in p['ctrl']:
+            (name,gen) = generator(b)
+            ctrl_write(name=name,
+                       instr=gen.instr,
+                       output=ppath+'c{}'.format(b['seq']))
+
+    if args.control_only:
+        #  Simulate the control requests
+        controlsim(pattern='{}/{}'.format(args.output,p['name']),
+                   start=0, stop=910000, mode='CW')
+    else:
+        #  Simulate the beam generation/arbitration
+        seqsim(pattern='{}/{}'.format(args.output,p['name']),
+               start=0, stop=910000, mode='CW',
+               destn_list=destn, pc_list=range(14), seq_list=p['aseq'])
+
+    tend = time.perf_counter()
+    logging.info(f'End {ppath}: {tend-tbegin} s')
+    
 def main():
+    global args
     parser = argparse.ArgumentParser(description='train pattern generator')
     parser.add_argument("-o", "--output"            , required=True , help="file output path")
     parser.add_argument("-c", "--control_only"      , action='store_true', help="regenerate control data")
+    parser.add_argument("--verbose", action='store_true')
     args = parser.parse_args()
 
-    destn = lcls.lcls_destn()
-    pcdef = lcls.lcls_pcdef()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
 
     bursts = [ {'name':'1b'      , 'bunch_spacing':1    , 'bunches_per_train':1   },
                {'name':'2b_10000', 'bunch_spacing':10000, 'bunches_per_train':2   },
@@ -82,53 +145,11 @@ def main():
 
     open(args.output+'/destn.json','w').write(json.dumps(destn))
     open(args.output+'/pcdef.json','w').write(json.dumps(pcdef))
-    
-    for p in patterns:
-        ppath = '{}/{}/'.format(args.output,p['name'])
-        try:
-            os.mkdir(ppath)
-        except:
-            pass
 
-        #  Generate the beam sequences
-        if 'beam' in p:
-            for d,b in p['beam'].items():
-                (name,gen) = generator(b)
-                print('name [{}]'.format(name))
-                beam_write(name=name,
-                           instr=gen.instr, 
-                           output=ppath+'d{}'.format(d),
-                           allow=destn[b['destn']]['allow'])
-
-            #  Add required allow tables to pattern (or generate unique ones)
-            #  Need to be selective here, else the combinatorics are huge (slow simulation)
-            for d,a in p['aseq'].items():
-                for i,seq in enumerate(a):
-                    print('seq {}'.format(seq))
-                    (name,gen) = generator(seq)
-                    allow_write(name=name,
-                                instr=gen.instr,
-                                start=0,     # start is used at reset, repeat=False, 
-                                pcdef=pcdef, # keep alignment of periodic and burst
-                                output=ppath+'allow_d{}_{}'.format(d,i))
-
-        if 'ctrl' in p:
-            #  Generate the control sequences
-            for b in p['ctrl']:
-                (name,gen) = generator(b)
-                ctrl_write(name=name,
-                           instr=gen.instr,
-                           output=ppath+'c{}'.format(b['seq']))
-
-        if args.control_only:
-            #  Simulate the control requests
-            controlsim(pattern='{}/{}'.format(args.output,p['name']),
-                       start=0, stop=910000, mode='CW')
-        else:
-            #  Simulate the beam generation/arbitration
-            seqsim(pattern='{}/{}'.format(args.output,p['name']),
-                   start=0, stop=910000, mode='CW',
-                   destn_list=destn, pc_list=range(14), seq_list=p['aseq'])
+    with Pool(processes=None) as pool:
+        result = pool.map_async(generate_pattern, patterns)
+        result.wait()
 
 if __name__=='__main__':
     main()
+

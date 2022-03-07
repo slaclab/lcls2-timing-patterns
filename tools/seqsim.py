@@ -5,6 +5,7 @@ import pprint
 import json
 import os
 import time
+import logging
 from collections import deque
 from itertools import chain
 #from .compress import compress
@@ -74,7 +75,7 @@ class SeqUser:
             self.stats[i] = {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1}
 
         if len(seqdict['request'])==0:
-            print('No beam requests.  Skipping simulation.')
+            logging.debug('No beam requests.  Skipping simulation.')
             return
 
         x = 0
@@ -101,13 +102,11 @@ class SeqUser:
                 request  = int(engine.request)
                 instrset = seqdict['allow'][i]
 
-                if self.verbose:
-                    print('Engine {}:  frame {}  request {:x}'.format(i,frame,request))
+                logging.debug('Engine {}:  frame {}  request {:x}'.format(i,frame,request))
 
                 while frame == gframe:
 
-                    if self.verbose:
-                        print('\t[{}] = {}'.format(engine.instr,instrset[engine.instr]))
+                    logging.debug('\t[{}] = {}'.format(engine.instr,instrset[engine.instr]))
 
                     request  = int(engine.request)
                     instrset[engine.instr].execute(engine)
@@ -115,9 +114,8 @@ class SeqUser:
                     if engine.frame != frame:
                         if request != 0:
                             allow    |= (1<<i)
-                        if self.verbose:
-                            print('\tframe: {}  instr {}  allow {:x}'.format
-                                  (frame,engine.instr,allow))
+                        logging.debug('\tframe: {}  instr {}  allow {:x}'.format
+                                      (frame,engine.instr,allow))
 
                         frame   = int(engine.frame)
                         request = int(engine.request)
@@ -134,21 +132,18 @@ class SeqUser:
                 instrset = seqdict['request'][i]
                 amask    = seqdict['allowmask'][i]
 
-                if self.verbose:
-                    print('Engine {}:  frame {}  request {:x}'.format(i,frame,request))
+                logging.debug('Engine {}:  frame {}  request {:x}'.format(i,frame,request))
 
                 while frame == gframe:
 
-                    if self.verbose:
-                        print('\t[{}] = {}'.format(engine.instr,instrset[engine.instr]))
+                    logging.debug('\t[{}] = {}'.format(engine.instr,instrset[engine.instr]))
 
                     request  = int(engine.request)
                     instrset[engine.instr].execute(engine)
 
                     if engine.frame != frame:
-                        if self.verbose:
-                            print('\tframe: {}  instr {}  request {:x}'.format
-                                  (frame,engine.instr,request))
+                        logging.debug('\tframe: {}  instr {}  request {:x}'.format
+                                      (frame,engine.instr,request))
                                 
                         if request != 0:
                             requests |= (1<<i)
@@ -186,8 +181,7 @@ class SeqUser:
                 if self.stats[i]['first']<0:
                     self.stats[i]['first']=gframe
 
-            if self.verbose:
-                print('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
+            logging.debug('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
             gframe += 1
 
         #print(self.stats)
@@ -221,21 +215,18 @@ class SeqUser:
                 request  = int(engine.request)
                 instrset = seqdict['request'][i]
 
-                if self.verbose:
-                    print('Engine {}:  frame {}  request {:x}'.format(i,frame,request))
+                logging.debug('Engine {}:  frame {}  request {:x}'.format(i,frame,request))
 
                 while frame == gframe:
 
-                    if self.verbose:
-                        print('\t[{}] = {}'.format(engine.instr,instrset[engine.instr]))
+                    logging.debug('\t[{}] = {}'.format(engine.instr,instrset[engine.instr]))
 
                     request  = int(engine.request)
                     instrset[engine.instr].execute(engine)
 
                     if engine.frame != frame:
-                        if self.verbose:
-                            print('\tframe: {}  instr {}  request {:x}'.format
-                                  (frame,engine.instr,request))
+                        logging.debug('\tframe: {}  instr {}  request {:x}'.format
+                                      (frame,engine.instr,request))
                             
                         for j in range(16):
                             if (request & (1<<j)) != 0:
@@ -264,8 +255,7 @@ class SeqUser:
             #    self.xdata[arequest].append(gframe)
             #    self.ydata[arequest].append(0+arequest*0.04)
 
-            if self.verbose:
-                print('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
+            logging.debug('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
             gframe += 1
 
 
@@ -295,16 +285,14 @@ class SeqUser:
 
             while frame == gframe:
 
-                if self.verbose:
-                    print('\t[{}] = {}'.format(engine.instr,instrset))
+                logging.debug('\t[{}] = {}'.format(engine.instr,instrset))
 
                 request  = int(engine.request)
                 instrset[engine.instr].execute(engine)
 
                 if engine.frame != frame:
-                    if self.verbose:
-                        print('\tframe: {}  instr {}  request {:x}'.format
-                              (frame,engine.instr,request))
+                    logging.debug('\tframe: {}  instr {}  request {:x}'.format
+                                  (frame,engine.instr,request))
 
                     if request:
                         if slast is not None:
@@ -325,9 +313,8 @@ class SeqUser:
                                 if len(frames[q]) > result[q]:
                                     result[q] = len(frames[q])
 
-                        if self.verbose:
-                            print('frames {}'.format(frames))
-                            print('result {}'.format(result))
+                        logging.debug('frames {}'.format(frames))
+                        logging.debug('result {}'.format(result))
 
                     if engine.done:
                         engine.request = 0
