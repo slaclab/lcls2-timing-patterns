@@ -8,12 +8,11 @@ class Pv:
     def __init__(self, pvname, callback=None):
         self.pvname = pvname
         doconnect = callback is not None
-        self._pv = epics.get_pv(pvname,connect=doconnect)
-        self.__value__ = None
+        self._pv = epics.get_pv(pvname,connect=callback is not None)
         if callback:
             def monitor_cb(**kwargs):
                 if 'value' in kwargs:
-                    self.__value__ = float(kwargs['value'])
+                    self.__value__ = kwargs['value']
                 callback(err=None)
             if self._pv.connected:
                 self._pv.get()
@@ -40,7 +39,7 @@ class Pv:
     def monitor(self, callback):
         if callback:
             def monitor_cb(newval):
-                self.__value__ = float(newval.split()[3])
+                self.__value__ = newval.split()[3]
                 callback(err=None)
             if self._pv.connected:
                 self._pv.get()

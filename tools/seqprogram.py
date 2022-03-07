@@ -8,7 +8,7 @@ import logging
 
 class SeqUser:
 
-    def __init__(self, base):
+    def __init__(self, base, isXpm=False):
         prefix = base
         self.base     = prefix
         self.ninstr   = Pv(prefix+':INSTRCNT')
@@ -16,7 +16,6 @@ class SeqUser:
         self.instr    = Pv(prefix+':INSTRS')
         self.idxseq   = [Pv(prefix+':SEQ{:02d}IDX'.format(i)) for i in range(64)]
         self.seqname  = Pv(prefix+':SEQ00DESC')
-        self.seqbname = Pv(prefix+':SEQ00BDESC')
         self.idxseqr  = Pv(prefix+':RMVIDX')
         self.cancel   = Pv(prefix+':CNSL')
         self.idxrun   = Pv(prefix+':RUNIDX')
@@ -24,8 +23,18 @@ class SeqUser:
         self.syncstart= Pv(prefix+':SYNCSEQ')
         self.start    = Pv(prefix+':SCHEDRESETFLAG')
         self.reset    = Pv(prefix+':FORCERESET')
-        self.reqmask  = Pv(prefix+':REQMASK')
-        self.dest     = Pv(prefix+':DEST')
+
+        if 'DST' in prefix:
+            self.reqmask  = Pv(prefix+':REQMASK')
+            self.dest     = Pv(prefix+':DEST')
+        else:
+            self.reqmask  = None
+            self.dest     = None
+
+        if 'XPM' in prefix:
+            self.seqbname = Pv(prefix+':SEQ00BDESC')
+        else:
+            self.seqbname = None
 
         self._newidx = False
         def idx_cb(err,self=self):
@@ -120,7 +129,7 @@ class SeqUser:
         logging.debug( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
 
         #  (Optional for XPM) Write descriptions for each bit in the sequence
-        if descset!=None:
+        if descset!=None and self.seqbname:
             self.seqbname.put(descset)
 
         self._idx = idx
@@ -160,7 +169,7 @@ class SeqUser:
         logging.debug( 'Sequence '+self.seqname.get()+' found at index %d'%idx)
 
         #  (Optional for XPM) Write descriptions for each bit in the sequence
-        if 'descset' in config and config['descset'] is not None:
+        if 'descset' in config and config['descset'] is not None and self.seqbname:
             self.seqbname.put(config['descset'])
 
         self._idx = idx

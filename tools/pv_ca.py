@@ -1,4 +1,5 @@
 from epics import caget, caput, camonitor
+import logging
 
 class Pv:
     def __init__(self, pvname, callback=None):
@@ -6,7 +7,7 @@ class Pv:
         self.__value__ = None
         if callback:
             def monitor_cb(newval):
-                self.__value__ = float(newval.split()[3])
+                self.__value__ = newval.split()[3]
                 callback(err=None)
             camonitor(self.pvname, monitor_cb)
 
@@ -22,7 +23,8 @@ class Pv:
     def monitor(self, callback):
         if callback:
             def monitor_cb(newval):
-                self.__value__ = float(newval.split()[3])
+                logging.info(f'{self.pvname} {self.__value__} {newval.split()[3]}')
+                self.__value__ = newval.split()[3]
                 callback(err=None)
             camonitor(self.pvname, monitor_cb)
 
