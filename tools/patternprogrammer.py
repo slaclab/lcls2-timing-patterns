@@ -130,8 +130,7 @@ class PatternProgrammer(object):
                 seq['load'] = []
             seq['eng'].schedule(subseq,sync)
 
-        self.chargePv  .put(charge)
-        self.chargeEnPv.put(1)
+        self.charge = charge
 
         profile.append(('beamseq_prog',time.time()))
 
@@ -147,6 +146,9 @@ class PatternProgrammer(object):
     def apply(self):
         profile = []
         profile.append(('init',time.time()))
+
+        self.chargePv  .put(self.charge)
+        self.chargeEnPv.put(1)
 
         # 2)  Restart
         self.restartPv.put(1)

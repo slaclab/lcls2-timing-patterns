@@ -18,13 +18,24 @@ from lcls.destn              import *
 #
 #  Some policies
 #
-#    Button rates have no spaces
-def insert_space(rate):
-    if 'kHz' in rate:
-        rates = rate.split('k')[0]+' kHz'
-    else:
-        rates = rate.split('H')[0]+' Hz'
-    return rates
+#    Just make a whole dictionary to translate rate button names to pattern names
+rate_names = {'0Hz'   :'0 Hz', 
+              '1Hz'   :'1 Hz',
+              '10Hz'  :'10 Hz',
+              '50Hz'  :'50 Hz',
+              '100Hz' :'100 Hz',
+              '200Hz' :'200 Hz',
+              '500Hz' :'500 Hz',
+              '1000Hz':'1 kHz',
+              '1400Hz':'1.4 Hz',
+              '5000Hz':'5 kHz',
+              '10kHz' :'10 Hz',
+              '23kHz' :'23 Hz',
+              '33kHz' :'33 Hz',
+              '46kHz' :'46 Hz',
+              '93kHz' :'93 Hz',
+              '464kHz':'464 Hz',
+              '929kHz':'929 Hz',}
 
 #    Choose downstream most destination with rate
 def get_cw_dst(dst_list):
@@ -115,7 +126,7 @@ class DestPv:
         return self.get_rate()!='0Hz'
 
     def cw_pattern(self,path):
-        rates = insert_space(self.get_rate())
+        rates = rate_names[self.get_rate()]
         return f'{path}/{self.name}.{rates}'
 
     def burst_selected(self):
