@@ -173,9 +173,5 @@ def main():
         result = pool.map_async(generate_pattern, patterns)
         result.wait()
 
-def f(x):
-    print(f'f{x}')
-    return x*x
-
 if __name__=='__main__':
     main()

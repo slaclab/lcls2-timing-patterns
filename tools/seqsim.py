@@ -255,7 +255,7 @@ class SeqUser:
             #    self.xdata[arequest].append(gframe)
             #    self.ydata[arequest].append(0+arequest*0.04)
 
-            logging.debug('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
+#            logging.debug('== gframe {}  requests {:x}  request {}'.format(gframe,requests,arequest))
             gframe += 1
 
 
@@ -313,8 +313,8 @@ class SeqUser:
                                 if len(frames[q]) > result[q]:
                                     result[q] = len(frames[q])
 
-                        logging.debug('frames {}'.format(frames))
-                        logging.debug('result {}'.format(result))
+#                        logging.debug('frames {}'.format(frames))
+#                        logging.debug('result {}'.format(result))
 
                     if engine.done:
                         engine.request = 0

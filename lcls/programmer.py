@@ -29,13 +29,13 @@ rate_names = {'0Hz'   :'0 Hz',
               '1000Hz':'1 kHz',
               '1400Hz':'1.4 Hz',
               '5000Hz':'5 kHz',
-              '10kHz' :'10 Hz',
-              '23kHz' :'23 Hz',
-              '33kHz' :'33 Hz',
-              '46kHz' :'46 Hz',
-              '93kHz' :'93 Hz',
-              '464kHz':'464 Hz',
-              '929kHz':'929 Hz',}
+              '10kHz' :'10 kHz',
+              '23kHz' :'23 kHz',
+              '33kHz' :'33 kkHz',
+              '46kHz' :'46 kHz',
+              '93kHz' :'93 kHz',
+              '464kHz':'464 kHz',
+              '929kHz':'929 kHz',}
 
 #    Choose downstream most destination with rate
 def get_cw_dst(dst_list):
@@ -69,6 +69,22 @@ class MonitoredPv:
             self._updated = False
             return True
         return False
+
+class LogPv:
+    def __init__(self, name):
+        self.pv = Pv(name)
+        self.msg = []
+
+    def append(self, msg):
+        if len(self.msg) > 2:
+            self.msg = self.msg[1:]
+        self.msg.append(msg)
+        while True:
+            s = '\n'.join(self.msg)
+            if len(s) < 40:
+                break
+            self.msg = self.msg[1:]
+        self.pv.put(s)
 
 class DestPv:
     def __init__(self, base, mode, dst, path):
@@ -169,6 +185,9 @@ def run_mode(program,mode_pv):
     cw_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestart'
     bu_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartBurst'
 
+    log_pv   = LogPv(args.pv+':LOG')
+    log_pv.append(f'Mode {mode}')
+
     cw_load_pv  = MonitoredPv(args.pv+':CONTINUOUS_LOAD' )
     bu_load_pv  = MonitoredPv(args.pv+':BURST_LOAD' )
     apply_pv    = MonitoredPv(args.pv+':APPLY')
@@ -183,12 +202,16 @@ def run_mode(program,mode_pv):
         p = get_cw_dst(dst).cw_pattern(cw_path)
         logging.info(f'Loading path {p}')
         program.load(p,charge)
+        base = p.split('/')[-1]
+        log_pv.append(f'Loaded {base}')
 
     def bu_load():
         charge = chargpv.get()
         p = get_bu_dst(dst).burst_pattern(bu_path)
         logging.info(f'Loading path {p}')
         program.load(p,charge)
+        base = p.split('/')[-1]
+        log_pv.append(f'Loaded {base}')
 
 #    hbeatpv = Pv(args.pv+':HEARTBEAT')
 
