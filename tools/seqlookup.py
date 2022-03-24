@@ -40,7 +40,7 @@ def seq_lookup(arg):
          '10 kHz'     :{'instr':['BeamRequest(0)','FixedRateSync("10kH",1)','Branch.unconditional(0)'],
                         'async_start':1},
 	 '23 kHz'     :{'instr':['BeamRequest(0)','FixedRateSync("910kH",40)','Branch.unconditional(0)',
-                                 'FixedRateSync("100H",1)','Branch.unconditional(0)'],
+                                 'FixedRateSync("10H",1)','Branch.unconditional(0)'],
                         'async_start':3},
          '33 kHz'     :{'instr':['BeamRequest(0)','FixedRateSync("910kH",28)','Branch.unconditional(0)',
                                  'FixedRateSync("100H",1)','Branch.unconditional(0)'],
