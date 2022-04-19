@@ -75,8 +75,8 @@ class PeriodicGenerator(object):
 
     def _fill_instr(self):
         #  Common period (subharmonic)
-        #period = numpy.lcm.reduce(self.period)
-        period = reduce(lcm,self.period)
+        period = numpy.lcm.reduce(self.period)
+        #period = reduce(lcm,self.period)
         #  Brute force it to see how far we get (when will it fail?)
         print('period {}  args.period {}'.format(period,self.period))
         reps   = [period // p for p in self.period]
@@ -141,9 +141,8 @@ class PeriodicGenerator(object):
                 else:
                     self.instr.append('instrset.append( ControlRequest({}) )'.format(reqs[i]))
                 self.ninstr += 1
-                if n > 1:
-                    self.instr.append('instrset.append( Branch.conditional(start, 0, {}) )'.format(n))
-                    self.ninstr += 1
+                self.instr.append('instrset.append( Branch.conditional(start, 0, {}) )'.format(n))
+                self.ninstr += 1
             else:
                 if bsteps[i]>0:
                     self._wait(bsteps[i])
