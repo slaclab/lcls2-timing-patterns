@@ -94,6 +94,7 @@ def main():
               {'name':'10 Hz'  , 'rate':10},
               {'name':'50 Hz'  , 'rate':50},
               {'name':'100 Hz' , 'rate':100},
+              {'name':'120 Hz' , 'rate':120}
               {'name':'200 Hz' , 'rate':200},
               {'name':'500 Hz' , 'rate':500},
               {'name':'1 kHz'  , 'rate':1000},
