@@ -19,6 +19,7 @@ def generate_pattern(p):
     ppath = '{}/{}/'.format(args.output,p['name'])
     tbegin = time.perf_counter()
     logging.info(f'Begin {ppath}')
+    verb = 0 #verbose
 
     try:
         os.mkdir(ppath)
@@ -60,8 +61,9 @@ def generate_pattern(p):
                    start=0, stop=910000, mode='CW')
 
     else:
-        #  Simulate the beam generation/arbitration and control requests
-        seqsim(pattern='{}/{}'.format(args.output,p['name']),
+        if(verb==1):
+          #  Simulate the beam generation/arbitration and control requests
+          seqsim(pattern='{}/{}'.format(args.output,p['name']),
                start=0, stop=910000, mode='CW',
                destn_list=destn, pc_list=range(14), seq_list=p['aseq'])
 
@@ -94,7 +96,7 @@ def main():
               {'name':'10 Hz'  , 'rate':10},
               {'name':'50 Hz'  , 'rate':50},
               {'name':'100 Hz' , 'rate':100},
-              {'name':'120 Hz' , 'rate':120},
+#              {'name':'120 Hz' , 'rate':120},
               {'name':'200 Hz' , 'rate':200},
               {'name':'500 Hz' , 'rate':500},
               {'name':'1 kHz'  , 'rate':1000},
@@ -122,7 +124,7 @@ def main():
             p['beam'] = {j:{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j} for j in destn.keys()}  # initialize all destns to 0 Hz
             p['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
             if(i==2):
-              p['beam'][0] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'SC1 Laser':0}#Schedule the same rate as DUMPBSY to LASER so when the shutter is inserted we can keep stable laser
+              p['beam'][0] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':0}#Schedule the same rate as DUMPBSY to LASER so when the shutter is inserted we can keep stable laser
             p['ctrl'] = {j:{'generator':'lookup', 'name':'0 Hz','request':'ControlRequest(0)'} for j in range(17)}  # initialize all control sequences to none
             #  Set allow sequences. Make last sequence mimic beam pattern for best PC rating
             #  We need a list of allow sequences for each dependent destination
@@ -137,6 +139,10 @@ def main():
                     aseq.append({'generator':'lookup', 'name':'1 Hz'})
                 if b['rate']> 10:
                     aseq.append({'generator':'lookup', 'name':'10 Hz'})
+                if b['rate']> 100:
+                    aseq.append({'generator':'lookup', 'name':'100 Hz'})
+                if b['rate']> 1000:
+                    aseq.append({'generator':'lookup', 'name':'1 kHz'})
                 if b['rate']> 0:
                     aseq.append(p['beam'][i])
                     p['aseq'][a] = aseq
