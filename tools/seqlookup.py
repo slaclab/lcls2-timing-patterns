@@ -207,7 +207,7 @@ def seq_lookup(arg):
                                    'BeamRequest(0)','FixedRateSync("70kH",584)',
                                    'Branch.unconditional(0)',
                                    'FixedRateSync("1H",1)','Branch.unconditional(0)'],
-                           'async_start':22s},
+                           'async_start':22},
          '10 Hz SimAC' : {'instr':['BeamRequest(0)','FixedRateSync("70kH",4*(583*2+584))',
                                    'Branch.unconditional(0)',
                                    'FixedRateSync("1H",1)','Branch.unconditional(0)'],
@@ -223,6 +223,12 @@ def seq_lookup(arg):
                                     'Branch.unconditional(0)',
                                     'FixedRateSync("1H",1)','Branch.unconditional(0)'],
                            'async_start':14},
+         '1/10/100 Hz' : {'instr':['ControlRequest(7)', # fire 1/10/100Hz bits
+                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(8,0,1)',  # fire 100Hz bit
+                                   'FixedRateSync("100H",1)','ControlRequest(6)','Branch.conditional(8,1,1)',  # fire 10/100Hz bits
+                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(8,0,8)',  # fire 100Hz bit
+                                   'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                          'async_start':10},
          }
 
     name = arg['name']

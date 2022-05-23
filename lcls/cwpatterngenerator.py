@@ -73,6 +73,7 @@ def main():
     parser = argparse.ArgumentParser(description='train pattern generator')
     parser.add_argument("-o", "--output", required=True , help="file output path")
     parser.add_argument("-c", "--control_only", action='store_true' , help="regenerator cX files only")
+    parser.add_argument("-s", "--serial", action='store_true', help="run generation serially to catch exceptions")
     parser.add_argument("--verbose", action='store_true')
     args = parser.parse_args()
 
@@ -122,7 +123,7 @@ def main():
             p['beam'] = {j:{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j} for j in destn.keys()}  # initialize all destns to 0 Hz
             p['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
             if(i==2):
-              p['beam'][0] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'SC1 Laser':0}#Schedule the same rate as DUMPBSY to LASER so when the shutter is inserted we can keep stable laser
+              p['beam'][0] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':0}#Schedule the same rate as DUMPBSY to LASER so when the shutter is inserted we can keep stable laser
             p['ctrl'] = {j:{'generator':'lookup', 'name':'0 Hz','request':'ControlRequest(0)'} for j in range(17)}  # initialize all control sequences to none
             #  Set allow sequences. Make last sequence mimic beam pattern for best PC rating
             #  We need a list of allow sequences for each dependent destination
@@ -171,10 +172,14 @@ def main():
 
     open(args.output+'/destn.json','w').write(json.dumps(destn))
     open(args.output+'/pcdef.json','w').write(json.dumps(pcdef))
-    
-    with Pool(processes=None) as pool:
-        result = pool.map_async(generate_pattern, patterns)
-        result.wait()
+
+    if args.s:
+        for p in patterns:
+            generate_pattern(p)
+    else:
+        with Pool(processes=None) as pool:
+            result = pool.map_async(generate_pattern, patterns)
+            result.wait()
 
 if __name__=='__main__':
     main()
