@@ -173,7 +173,7 @@ def main():
     open(args.output+'/destn.json','w').write(json.dumps(destn))
     open(args.output+'/pcdef.json','w').write(json.dumps(pcdef))
 
-    if args.s:
+    if args.serial:
         for p in patterns:
             generate_pattern(p)
     else:

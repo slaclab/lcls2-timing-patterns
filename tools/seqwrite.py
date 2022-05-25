@@ -40,7 +40,7 @@ def seq_write_json(name, output, start=None, allow=None, pcdef=None):
     if allow is not None:
         cc['allow'] = allow
     if pcdef is not None:
-        cc['maxQ'] = allowsim(config['instrset'], pcdef)
+        cc['maxQ'] = allowsim(config['instrset'], encoding, pcdef)
         if start is not None:
             cc['start'] = start
 

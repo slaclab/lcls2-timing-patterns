@@ -10,6 +10,10 @@ from collections import deque
 from itertools import chain
 #from .compress import compress
 
+import pyseqsim
+
+USE_PYSEQSIM = True
+
 destn = {}
 pcdef = {}
 f=None
@@ -369,15 +373,27 @@ def allowSetGen(dests,seqs):
 
 #  simulate the allow sequence for determining power class
 #  the result will be the range of charges for which the sequence meets each power class limits
-def allowsim(instrset, pc, start=0, stop=910000, mode='CW'):
-    seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
+def allowsim(instrset, encoding, pc, start=0, stop=910000, mode='CW'):
 
     #  Find all the integration windows
     qwin = { p.winQ for p in pc }
 
     #  Count the maximum requests in each integration window and the minimum bunch spacing
 #    seq.verbose = True
-    qpwr = seq.power(instrset, qwin)
+
+    if not USE_PYSEQSIM:
+        t0 = time.perf_counter()
+        seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
+        qpwr = seq.power(instrset, qwin)
+        t1 = time.perf_counter()
+        print('-- SeqUser.power {} seconds'.format(t1-t0))
+
+    if USE_PYSEQSIM:
+        t0 = time.perf_counter()
+        seq = pyseqsim.beamseq(acmode=(mode=='AC'),start=start,stop=stop)
+        qpwr = seq.power(encoding, qwin)
+        t1 = time.perf_counter()
+        print('-- pyseqsim.power {} seconds'.format(t1-t0))
 
     #  For each power class calculate the maximum charge for which it satisfies
     result = []
@@ -392,10 +408,10 @@ def allowsim(instrset, pc, start=0, stop=910000, mode='CW'):
     return result
 
 def controlsim(pattern, start=0, stop=910000, mode='CW'):
-    seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
     ctrl    = {}
     seqdict = {}
     seqdict['request'] = {}
+    seqdict['encoding'] = {}
     for i in range(18):
         fname = pattern+'/c{}.py'.format(i)
         config = {'title':'TITLE', 'descset':None, 'instrset':None}
@@ -403,15 +419,33 @@ def controlsim(pattern, start=0, stop=910000, mode='CW'):
             exec(compile(open(fname).read(), fname, 'exec'), {}, config)
             seqdict['request'][i] = config['instrset']
 
-    t0 = time.perf_counter()
-    seq.control(seqdict)
-    t1 = time.perf_counter()
+        fname = pattern+'/c{}.json'.format(i)
+        if os.path.exists(fname):
+            config = json.load(open(fname,mode='r'))
+            seqdict['encoding'][i] = config['encoding']
+        else:
+            raise RuntimeError('Pattern depends upon beam destination without encoding')
 
+    if not USE_PYSEQSIM:
+        seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
+        t0 = time.perf_counter()
+        seq.control(seqdict)
+        t1 = time.perf_counter()
+        print('-- SeqUser.control {} seconds'.format(t1-t0))
+        s = (seq.xdata,seq.stats)
+
+    if USE_PYSEQSIM:
+        seq = pyseqsim.controlseq(acmode=(mode=='AC'),start=start,stop=stop)
+        t0 = time.perf_counter()
+        s = seq.execute(seqdict)
+        t1 = time.perf_counter()
+        print('-- pyseqsim.control {} seconds'.format(t1-t0))
+        
     #seq.xdata = compress(seq.xdata)
     fname = pattern+'/ctrl.json'
-    open(fname,mode='w').write(json.dumps(seq.xdata))
+    open(fname,mode='w').write(json.dumps(s[0]))
     fname = pattern+'/ctrl_stats.json'
-    open(fname,mode='w').write(json.dumps(seq.stats))
+    open(fname,mode='w').write(json.dumps(s[1]))
 
     return seq
 
@@ -421,8 +455,6 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
     destn = destn_list
     pcdef = pc_list
     
-    seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
-
     #  Determine which destination power classes need to be iterated over
     beams  = []
     allows = []
@@ -445,8 +477,10 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
         key = '{}'.format(allowSet)
 #        print(key)
         seqdict = {}
+        seqdict['encoding' ] = {}
         seqdict['request'  ] = {}
         seqdict['allow'    ] = {}
+        seqdict['allowenc' ] = {}
         seqdict['allowmask'] = {}
         for b in beams:
             fname = pattern+'/d{}.py'.format(b)
@@ -457,6 +491,12 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
                 seqdict['allowmask'][b] = bitmask(destn[b]['allow'])
             else:
                 raise RuntimeError('Pattern depends upon beam destination without sequence')
+            fname = pattern+'/d{}.json'.format(b)
+            if os.path.exists(fname):
+                config = json.load(open(fname,mode='r'))
+                seqdict['encoding'][b] = config['encoding']
+            else:
+                raise RuntimeError('Pattern depends upon beam destination without encoding')
 
         for i,a in enumerate(allows):
             fname = pattern+'/allow_d{:}_{:}.py'.format(a,allowSet[i])
@@ -466,18 +506,37 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
                 seqdict['allow']    [a] = config['instrset']
             else:
                 raise RuntimeError('Pattern depends upon allow sequence - not found {}'.format(fname))
+            fname = pattern+'/allow_d{:}_{:}.json'.format(a,allowSet[i])
+            if os.path.exists(fname):
+                config = json.load(open(fname,mode='r'))
+                seqdict['allowenc'][a] = config['encoding']
+            else:
+                raise RuntimeError('Pattern depends upon beam destination without encoding')
 
 #        key = str(pc)
-        t0 = time.perf_counter()
-        seq.execute(seqdict)
-        t1 = time.perf_counter()
-#        print('-- execute {} seconds'.format(t1-t0))
+        if not USE_PYSEQSIM:
+            seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)
+            t0 = time.perf_counter()
+            seq.execute(seqdict)
+            t1 = time.perf_counter()
+            print('-- SeqUser.execute {} seconds'.format(t1-t0))
         #  Compress by identifying runs
         #dest [key] = compress(seq.xdata,seq.ydata)
-        dest [key] = (seq.xdata,seq.ydata)
-        stats[key] = {}
-        for b in beams:
-            stats[key][b] = seq.stats[b]
+            dest [key] = (seq.xdata,seq.ydata)
+            stats[key] = {}
+            for b in beams:
+                stats[key][b] = seq.stats[b]
+
+        if USE_PYSEQSIM:
+            t0 = time.perf_counter()
+            seq = pyseqsim.beamseq(acmode=(mode=='AC'),start=start,stop=stop)
+            s = seq.execute(seqdict)
+            t1 = time.perf_counter()
+            print('-- pyseqsim.execute {} seconds'.format(t1-t0))
+            dest [key] = (s[0],s[1])
+            stats[key] = {}
+            for b in beams:
+                stats[key][b] = s[2][b]
 
     fname = pattern+'/dest.json'
     open(fname,mode='w').write(json.dumps(dest))

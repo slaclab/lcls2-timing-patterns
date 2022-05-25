@@ -52,6 +52,8 @@ class FixedRateSync(Instruction):
         if step>0:
             engine.frame  += step
             engine.request = 0
+        else:
+            raise ValueError("No step");
 
 class ACRateSync(Instruction):
 

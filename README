@@ -93,4 +93,6 @@ be launched like so...
 
 In this case, the mps_port command-line parameters should use the value 2500.
 
-..
+
+The python code now depends upon a C library built with the 'make' command.  The 'make' command must be executed
+prior to sourcing the env.sh script.  The build process is incompatible with the gcc version referenced by env.sh.

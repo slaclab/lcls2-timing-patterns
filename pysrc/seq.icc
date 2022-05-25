@@ -1,0 +1,197 @@
+#ifndef seq_icc
+#define seq_icc
+
+#include <string>
+#include <vector>
+
+class Engine {
+public:
+  Engine(bool mode=false) : request(0), instr(0), frame(0), acmode(mode), done(false) { for(unsigned i=0; i<4; i++) ccnt[i]=0; }
+public:
+  unsigned request;
+  unsigned instr;
+  unsigned frame;
+  bool     acmode;
+  unsigned ccnt[4];
+  bool     done;
+};
+
+class Instruction;
+typedef std::vector<Instruction*> InstrSet;
+
+class Instruction {
+public:
+  virtual ~Instruction() {}
+  virtual void execute(Engine&) = 0;
+public:
+  static InstrSet create(PyObject*);
+};
+
+static unsigned _interval[] = { 910000, 91000, 9100, 910, 91, 13, 1 };
+
+class FixedRateSync : public Instruction {
+public:
+  FixedRateSync(unsigned m, unsigned o) :
+    _marker(m), _occ(o) {}
+  ~FixedRateSync() {}
+public:
+  void execute(Engine& engine) {
+    unsigned intv = _interval[_marker];
+    engine.instr++;
+    int step = intv*_occ - (engine.frame%intv);
+    if (step>0) {
+      engine.frame += step;
+      engine.request = 0;
+    }
+    else {
+      throw(std::string("no step"));
+    }
+  }
+private:
+  unsigned _marker;
+  unsigned _occ;
+};
+
+static unsigned _acIntv[] = { 120, 60, 12, 6, 2, 1 };
+
+class ACRateSync : public Instruction {
+public:
+  ACRateSync(unsigned tsm, unsigned m, unsigned o) :
+    _timeslots(tsm), _marker(m), _occ(o) {}
+  ~ACRateSync() {}
+public:
+  void execute(Engine& engine) {
+    unsigned acStart = 42*13;
+    //  All intervals are on the 71kHz boundary
+    unsigned acIntv  = 1166*13; // 60 Hz
+    unsigned tsIntv  = 194*13;  // 360 Hz
+
+    engine.instr++;
+    unsigned mask = _timeslots & 0x3f;
+    //  Trap 0, since it will never return
+    if (!mask) {
+      throw(std::string("ACRateSync called with timeslotmask==0"));
+    }
+
+    unsigned intv = _acIntv[_marker];
+    for(unsigned i=0; i<_occ; i++) {
+      engine.frame++;
+      while(1) {
+        //  Are we on the right AC marker?
+        int acframe = engine.frame - acStart;
+        int mk60H = int(acframe / acIntv);
+        if ((mk60H % intv)==0) {
+          if (((acframe % acIntv) % tsIntv)==0) {
+            int ts = int((acframe % acIntv)/tsIntv);
+            if ((1<<ts)&mask)
+              break;
+          }
+          if ((acframe%acIntv) < 5*tsIntv) {
+            // advance to the next timeslot
+            engine.frame += tsIntv - ((acframe%acIntv)%tsIntv);
+            continue;
+          }
+        }
+        //  advance to the next ac marker
+        engine.frame += acIntv - (acframe%acIntv);
+      }
+    }
+    engine.request = 0;
+  }
+private:
+  unsigned _timeslots;
+  unsigned _marker;
+  unsigned _occ;
+};
+
+class Branch : public Instruction {
+public:
+  Branch(unsigned line) : _line(line), _counter(0), _value(0) {}
+  Branch(unsigned line, unsigned counter, unsigned value) :
+    _line(line), _counter(counter), _value(value) {}
+  ~Branch() {}
+public:
+  void execute(Engine& engine) {
+    if (_value==0) {  // unconditional
+      if (engine.instr==_line) {
+        engine.frame++;
+        engine.done = true;
+      }
+      engine.instr = _line;
+    }
+    else {  // conditional
+      if (engine.ccnt[_counter]==_value) {
+        engine.instr++;
+        engine.ccnt[_counter] = 0;
+      }
+      else {
+        engine.instr = _line;
+        engine.ccnt[_counter]++;
+      }
+    }
+  }
+private:
+  unsigned _line;
+  unsigned _counter;
+  unsigned _value;
+};
+
+class BeamRequest : public Instruction {
+public:
+  BeamRequest(unsigned charge) : _charge(charge) {}
+  ~BeamRequest() {}
+public:
+  void execute(Engine& engine) { engine.request = (_charge<<16)|1; engine.instr++; }
+private:
+  unsigned _charge;
+};
+
+class ControlRequest : public Instruction {
+public:
+  ControlRequest(unsigned word) : _word(word) {}
+  ~ControlRequest() {}
+public:
+  void execute(Engine& engine) { engine.request = _word; engine.instr++; }
+private:
+  unsigned _word;
+};
+
+InstrSet Instruction::create(PyObject* o)
+{
+  InstrSet iset;
+  for(int i=1; i<PyList_Size(o); i+=7) {
+#ifdef DBUG
+    for(int j=0; j<7; j++)
+      printf(" %i.%i: %i\n",i,j,PyLong_AsLong(PyList_GetItem(o,i+j)));
+#endif
+    unsigned opcode = PyLong_AsLong(PyList_GetItem(o,i+1));
+    switch(opcode) {
+    case 0: // FixedRateSync
+      iset.push_back(new FixedRateSync(PyLong_AsLong(PyList_GetItem(o,i+2)),
+                                       PyLong_AsLong(PyList_GetItem(o,i+3))));
+      break;
+    case 1: // ACRateSync
+      iset.push_back(new ACRateSync(PyLong_AsLong(PyList_GetItem(o,i+2)),
+                                    PyLong_AsLong(PyList_GetItem(o,i+3)),
+                                    PyLong_AsLong(PyList_GetItem(o,i+4))));
+      break;
+    case 2: // Branch
+      iset.push_back(new Branch(PyLong_AsLong(PyList_GetItem(o,i+2)),
+                                PyLong_AsLong(PyList_GetItem(o,i+3)),
+                                PyLong_AsLong(PyList_GetItem(o,i+4))));
+      break;
+    case 4: // BeamRequest
+      iset.push_back(new BeamRequest(PyLong_AsLong(PyList_GetItem(o,i+2))));
+      break;
+    case 5: // ControlRequest
+      iset.push_back(new ControlRequest(PyLong_AsLong(PyList_GetItem(o,i+2))));
+      break;
+    default:
+      throw(std::string("Unrecognized instruction"));
+      break;
+    }
+  }
+  return iset;
+}
+
+#endif

@@ -1,0 +1,1 @@
+ARCHES = $(HARCH) buildroot-2019.08-x86_64

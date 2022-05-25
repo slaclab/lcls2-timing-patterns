@@ -27,6 +27,8 @@ namespace Patt {
 
   class PatternStat {
   public:
+    PatternStat() : first(0), last(0), min(0), max(0), sum(0) {}
+  public:
     int      first;
     int      last;
     int      min;

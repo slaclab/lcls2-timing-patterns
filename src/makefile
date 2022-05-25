@@ -1,6 +1,5 @@
 CCACHE_DISABLE=1
 
-
 CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1/src
 BSA_DIR=/afs/slac/g/lcls/package/timing/bsa
 BSA_VERSION=R1.2.0
@@ -21,9 +20,7 @@ INSTALL_DIR=../
 
 HEADERS  = tpr.hh tprsh.hh tprdata.hh pattdata.hh
 
-
 tpr_SRCS  = tpr.cc pattdata.cc
-
 STATIC_LIBRARIES+=tpr
 
 test_pattdata_SRCS = test_pattdata.cc
