@@ -122,7 +122,6 @@ def main():
             p['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
             if(i==2):
               p['beam'][0] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':0}#Schedule the same rate to LASER so when the shutter is inserted we can keep stable laser
-            p['ctrl'] = {j:{'generator':'lookup', 'name':'0 Hz','request':'ControlRequest(0)'} for j in range(17)}  # initialize all control sequences to none
             #  Set allow sequences. Make last sequence mimic beam pattern for best PC rating
             #  We need a list of allow sequences for each dependent destination
             #  Make them all the same for the bursts

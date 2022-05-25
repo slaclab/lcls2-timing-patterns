@@ -155,14 +155,12 @@ def seq_lookup(arg):
                         'async_start':0},
          '100 Hz_skip2'     :{'instr':['FixedRateSync("100H",2)','BeamRequest(0)','FixedRateSync("100H",1)','Branch.conditional(1,0,97)','Branch.unconditional(0)',' FixedRateSync("1H",1)', 'Branch.unconditional(0)'], 
                         'async_start':5},
-
          '1/10/100 Hz' : {'instr':['ControlRequest(7)', # fire 1/10/100Hz bits
-                                    'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(1,0,8)',  # fire 100Hz bit
-                                    'FixedRateSync("100H",1)','ControlRequest(6)','Branch.conditional(1,1,8)',  # fire 10/100Hz bits
-                                    'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(8,0,8)',  # fire 100Hz bit
-                                    'FixedRateSync("1H",1)','Branch.unconditional(0)'],
-                           'async_start':10},
-
+                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=1,counter=0,value=8)',  # fire 100Hz bit
+                                   'FixedRateSync("100H",1)','ControlRequest(6)','Branch.conditional(line=1,counter=1,value=8)',  # fire 10/100Hz bits
+                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=8,counter=0,value=8)',  # fire 100Hz bit
+                                   'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                          'async_start':10},
          '1/10/10 Hz' : {'instr':['ControlRequest(7)', # fire 1/10/10Hz bits
                                     'FixedRateSync("10H",1)','ControlRequest(6)','Branch.conditional(1,0,8)', # fire 10Hz bit
                                     'FixedRateSync("1H",1)','Branch.unconditional(0)'],
@@ -171,7 +169,51 @@ def seq_lookup(arg):
          '1/1/1 Hz' : {'instr':['ControlRequest(7)',
                                     'FixedRateSync("1H",1)','Branch.unconditional(0)'],
                            'async_start':1},
-
+         '30 Hz SimAC' : {'instr':['BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",584)',
+                                   'FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",584)',
+                                   'FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",584)',
+                                   'FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",584)',
+                                   'Branch.unconditional(0)',
+                                   'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                           'async_start':16},
+         '90 Hz SimAC' : {'instr':['FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",584)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",584)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'FixedRateSync("70kH",584)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                   'BeamRequest(0)','FixedRateSync("70kH",584)',
+                                   'Branch.unconditional(0)',
+                                   'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                           'async_start':22},
+         '10 Hz SimAC' : {'instr':['BeamRequest(0)','FixedRateSync("70kH",4*(583*2+584))',
+                                   'Branch.unconditional(0)',
+                                   'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                           'async_start':3},
+         '110 Hz SimAC' : {'instr':['FixedRateSync("70kH",583)',
+                                    'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                    'BeamRequest(0)','FixedRateSync("70kH",584)',
+                                    'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                    'BeamRequest(0)','FixedRateSync("70kH",583)',
+                                    'BeamRequest(0)','FixedRateSync("70kH",584)',
+                                    'Branch.conditional(line=5, counter=0, 2)',
+                                    'Branch.conditional(line=0, counter=1, 9)',
+                                    'Branch.unconditional(0)',
+                                    'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                           'async_start':14},
          }
 
     name = arg['name']

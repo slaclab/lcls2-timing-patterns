@@ -111,7 +111,7 @@ def main():
             p = {}
             p['name'] = '{}.{}'.format(d['name'],b['name'])
             p['beam'] = {j:{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j} for j in destn.keys()}  # initialize all destns to 0 Hz
-            p['ctrl'] = {j:{'generator':'lookup', 'name':'0 Hz','request':'ControlRequest(0)'} for j in range(17)}  # initialize all control sequences to none
+            p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (18)]
             
             #  Now, beam to the targeted destination
             p['beam'][i] = {'generator':'train','destn':i,
@@ -126,15 +126,15 @@ def main():
                 p['aseq'][a].append(p['beam'][0])
 
             start = b['bunch_spacing'] * (b['bunches_per_train'] - 1)
-            p['ctrl'] = [{'seq':1, 'name':'end shutter', 'generator':'train',
-                          'destn':1, 'bunch_spacing':1, 'bunches_per_train':1, 'start_bucket':start, 'charge':None, 'repeat':False}]
+            p['ctrl'][3] = {'seq':3, 'name':'end shutter', 'generator':'train',
+                            'destn':1, 'bunch_spacing':1, 'bunches_per_train':1, 'start_bucket':start, 'charge':None, 'repeat':False}
 
             #  If we need the kicker, set the standby rate for 1 MHz
             if i>lcls.dumpBSY:  
-                p['ctrl'].append({'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'})
+                p['ctrl'][0] = {'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}
 
             # Scheduling BPM Calibration bit:     
-            p['ctrl'] = {'seq':1, 'generator':'lookup', 'name':'100 Hz_skip2', 'request':'ControlRequest(1)'}
+            p['ctrl'][1] = {'seq':1, 'generator':'lookup', 'name':'100 Hz_skip2', 'request':'ControlRequest(1)'}
             #BSA Control Bits (1Hz)
             if (i>=1 and i<=5):
                 p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1 Hz', 'request':'ControlRequest(7)'}
@@ -152,9 +152,14 @@ def main():
     open(args.output+'/destn.json','w').write(json.dumps(destn))
     open(args.output+'/pcdef.json','w').write(json.dumps(pcdef))
 
-    with Pool(processes=None) as pool:
-        result = pool.map_async(generate_pattern, patterns)
-        result.wait()
+    if True:
+        for p in patterns:
+            generate_pattern(p)
+
+    else:
+        with Pool(processes=None) as pool:
+            result = pool.map_async(generate_pattern, patterns)
+            result.wait()
 
 if __name__=='__main__':
     main()
