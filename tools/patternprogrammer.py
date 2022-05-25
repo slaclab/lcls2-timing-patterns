@@ -29,8 +29,8 @@ class PatternProgrammer(object):
         self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i)),'load':[],'apply':[]} for i in range(17)]
         self.allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
         self.restartPv  = Pv(pv+':GBLSEQRESET')
-        self.chargePv   = Pv(pv+':BEAMCHRG')
-        self.chargeEnPv = Pv(pv+':BEAMCHRGOVRD')
+        self.chargePv   = Pv(pv+':BUNCH_CHARGE_RBV')
+        self.chargeEnPv = Pv(pv+':BUNCH_CHARGE_OVRD')
 
     def load(self, pattern, charge):
         profile = []
@@ -130,8 +130,10 @@ class PatternProgrammer(object):
                 seq['load'] = []
             seq['eng'].schedule(subseq,sync)
 
+        #self.chargePv  .put(charge)
+        #self.chargeEnPv.put(1)
+        #save charge value for "apply"
         self.charge = charge
-
         profile.append(('beamseq_prog',time.time()))
 
         #  Need to program the new charge value before restart
@@ -147,7 +149,7 @@ class PatternProgrammer(object):
         profile = []
         profile.append(('init',time.time()))
 
-        self.chargePv  .put(self.charge)
+        self.chargePv.put(self.charge)
         self.chargeEnPv.put(1)
 
         # 2)  Restart

@@ -133,6 +133,12 @@ def main():
             if i>lcls.dumpBSY:  
                 p['ctrl'].append({'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'})
 
+            # Scheduling BPM Calibration bit:     
+             p['ctrl'][1]={'seq':1, 'generator':'lookup', 'name':'100 Hz_skip2', 'request':'ControlRequest(1)'}
+            #BSA Control Bits (1Hz)
+            if (i>=1 and i<=5):
+                p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1 Hz', 'request':'ControlRequest(7)'}
+
             if args.control_only:
                 del p['beam']
                 del p['aseq']

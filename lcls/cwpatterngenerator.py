@@ -73,7 +73,6 @@ def main():
     parser = argparse.ArgumentParser(description='train pattern generator')
     parser.add_argument("-o", "--output", required=True , help="file output path")
     parser.add_argument("-c", "--control_only", action='store_true' , help="regenerator cX files only")
-    parser.add_argument("-s", "--serial", action='store_true', help="run generation serially to catch exceptions")
     parser.add_argument("--verbose", action='store_true')
     args = parser.parse_args()
 
@@ -95,7 +94,6 @@ def main():
               {'name':'10 Hz'  , 'rate':10},
               {'name':'50 Hz'  , 'rate':50},
               {'name':'100 Hz' , 'rate':100},
-              {'name':'120 Hz' , 'rate':120},
               {'name':'200 Hz' , 'rate':200},
               {'name':'500 Hz' , 'rate':500},
               {'name':'1 kHz'  , 'rate':1000},
@@ -123,7 +121,7 @@ def main():
             p['beam'] = {j:{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j} for j in destn.keys()}  # initialize all destns to 0 Hz
             p['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
             if(i==2):
-              p['beam'][0] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':0}#Schedule the same rate as DUMPBSY to LASER so when the shutter is inserted we can keep stable laser
+              p['beam'][0] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':0}#Schedule the same rate to LASER so when the shutter is inserted we can keep stable laser
             p['ctrl'] = {j:{'generator':'lookup', 'name':'0 Hz','request':'ControlRequest(0)'} for j in range(17)}  # initialize all control sequences to none
             #  Set allow sequences. Make last sequence mimic beam pattern for best PC rating
             #  We need a list of allow sequences for each dependent destination
@@ -150,14 +148,36 @@ def main():
             p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (18)]
             if i>lcls.dumpBSY:
                  if b['rate']>=10000:
-                    p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':'929 kHz', 'request':'ControlRequest(1)'}
+                   ['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
+                   if (i==3):# DUMPHXR
+                     p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':b['name'], 'request':'ControlRequest(1)'}
+                   if (i==3):# DUMPSXR
+                     p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':b['name'], 'request':'ControlRequest(2)'}
                  dump = p['beam'][0].copy()
                  dump['destn'] = lcls.dumpBSY  # "DumpBSY"
                  p['beam'][lcls.dumpBSY] = dump
+                 if b['rate']>1000:
+                 p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'100 Hz', 'destn':lcls.dumpBSY_keep}
+                 if b['rate']<=1000:
+                 p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'10 Hz', 'destn':lcls.dumpBSY_keep}
+                 if b['rate']<=10:
                  p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY_keep}
+
             # Scheduling BPM Calibration bit:     
             if b['rate']<100:
                p['ctrl'][1]={'seq':1, 'generator':'lookup', 'name':'{} Hz off {} Hz'.format(100-b['rate'],b['rate']), 'request':'ControlRequest(1)'}
+            #BSA Control Bits
+#Diag0       
+            if (i>=1) and (i<=5):
+#1Hz
+              if b['rate']=>1:
+                p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1 Hz', 'request':'ControlRequest(1)'}
+#10Hz
+            if b['rate']=>10:
+              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'10 Hz', 'request':'ControlRequest(2)'}
+#100Hz
+            if b['rate']=>100:
+              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'100 Hz', 'request':'ControlRequest(4)'}
 
                 
             if args.control_only:
@@ -172,14 +192,14 @@ def main():
 
     open(args.output+'/destn.json','w').write(json.dumps(destn))
     open(args.output+'/pcdef.json','w').write(json.dumps(pcdef))
+    
+    with Pool(processes=None) as pool:
+        result = pool.map_async(generate_pattern, patterns)
+        result.wait()
 
-    if args.serial:
-        for p in patterns:
-            generate_pattern(p)
-    else:
-        with Pool(processes=None) as pool:
-            result = pool.map_async(generate_pattern, patterns)
-            result.wait()
+def f(x):
+    print(f'f{x}')
+    return x*x
 
 if __name__=='__main__':
     main()
