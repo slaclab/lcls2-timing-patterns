@@ -171,13 +171,13 @@ def main():
             if (i>=1) and (i<=5):
 #1Hz
               if b['rate']=>1:
-                p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1 Hz', 'request':'ControlRequest(1)'}
+                p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/1/1 Hz'}
 #10Hz
             if b['rate']=>10:
-              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'10 Hz', 'request':'ControlRequest(2)'}
+              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/10/10 Hz'}
 #100Hz
             if b['rate']=>100:
-              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'100 Hz', 'request':'ControlRequest(4)'}
+              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/10/100 Hz'}
 
                 
             if args.control_only:
