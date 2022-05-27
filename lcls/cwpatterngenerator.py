@@ -148,11 +148,11 @@ def main():
             p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (18)]
             if i>lcls.dumpBSY:
                  if b['rate']>=10000:
-                   ['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
+                   p['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
                    if (i==3):# DUMPHXR
                      p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':b['name'], 'request':'ControlRequest(1)'}
                    if (i==3):# DUMPSXR
-                     p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':b['name'], 'request':'ControlRequest(2)'}
+                      p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':b['name'], 'request':'ControlRequest(2)'}
                  dump = p['beam'][0].copy()
                  dump['destn'] = lcls.dumpBSY  # "DumpBSY"
                  p['beam'][lcls.dumpBSY] = dump
