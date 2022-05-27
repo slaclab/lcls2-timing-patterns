@@ -155,13 +155,22 @@ def seq_lookup(arg):
                         'async_start':0},
          '100 Hz_skip2'     :{'instr':['FixedRateSync("100H",2)','BeamRequest(0)','FixedRateSync("100H",1)','Branch.conditional(1,0,97)','Branch.unconditional(0)',' FixedRateSync("1H",1)', 'Branch.unconditional(0)'], 
                         'async_start':5},
+
          '1/10/100 Hz' : {'instr':['ControlRequest(7)', # fire 1/10/100Hz bits
-                                    'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(8,0,1)',  # fire 100Hz bit
-                                    'FixedRateSync("100H",1)','ControlRequest(6)','Branch.conditional(8,1,1)',  # fire 10/100Hz bits
+                                    'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(1,0,8)',  # fire 100Hz bit
+                                    'FixedRateSync("100H",1)','ControlRequest(6)','Branch.conditional(1,1,8)',  # fire 10/100Hz bits
                                     'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(8,0,8)',  # fire 100Hz bit
                                     'FixedRateSync("1H",1)','Branch.unconditional(0)'],
                            'async_start':10},
 
+         '1/10/10 Hz' : {'instr':['ControlRequest(7)', # fire 1/10/10Hz bits
+                                    'FixedRateSync("10H",1)','ControlRequest(6)','Branch.conditional(1,0,8)', # fire 10Hz bit
+                                    'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                           'async_start':4},
+
+         '1/1/1 Hz' : {'instr':['ControlRequest(7)',
+                                    'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                           'async_start':1},
 
          }
 
