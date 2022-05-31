@@ -389,11 +389,11 @@ def allowsim(instrset, encoding, pc, start=0, stop=910000, mode='CW'):
         print('-- SeqUser.power {} seconds'.format(t1-t0))
 
     if USE_PYSEQSIM:
-        t0 = time.perf_counter()
+#        t0 = time.perf_counter()
         seq = pyseqsim.beamseq(acmode=(mode=='AC'),start=start,stop=stop)
         qpwr = seq.power(encoding, qwin)
-        t1 = time.perf_counter()
-        print('-- pyseqsim.power {} seconds'.format(t1-t0))
+#        t1 = time.perf_counter()
+#        print('-- pyseqsim.power {} seconds'.format(t1-t0))
 
     #  For each power class calculate the maximum charge for which it satisfies
     result = []
@@ -436,10 +436,10 @@ def controlsim(pattern, start=0, stop=910000, mode='CW'):
 
     if USE_PYSEQSIM:
         seq = pyseqsim.controlseq(acmode=(mode=='AC'),start=start,stop=stop)
-        t0 = time.perf_counter()
+#        t0 = time.perf_counter()
         s = seq.execute(seqdict)
-        t1 = time.perf_counter()
-        print('-- pyseqsim.control {} seconds'.format(t1-t0))
+#        t1 = time.perf_counter()
+#        print('-- pyseqsim.control {} seconds'.format(t1-t0))
         
     #seq.xdata = compress(seq.xdata)
     fname = pattern+'/ctrl.json'
@@ -528,11 +528,11 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
                 stats[key][b] = seq.stats[b]
 
         if USE_PYSEQSIM:
-            t0 = time.perf_counter()
+#            t0 = time.perf_counter()
             seq = pyseqsim.beamseq(acmode=(mode=='AC'),start=start,stop=stop)
             s = seq.execute(seqdict)
-            t1 = time.perf_counter()
-            print('-- pyseqsim.execute {} seconds'.format(t1-t0))
+#            t1 = time.perf_counter()
+#            print('-- pyseqsim.execute {} seconds'.format(t1-t0))
             dest [key] = (s[0],s[1])
             stats[key] = {}
             for b in beams:
