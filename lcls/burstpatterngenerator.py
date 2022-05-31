@@ -152,14 +152,9 @@ def main():
     open(args.output+'/destn.json','w').write(json.dumps(destn))
     open(args.output+'/pcdef.json','w').write(json.dumps(pcdef))
 
-    if True:
-        for p in patterns:
-            generate_pattern(p)
-
-    else:
-        with Pool(processes=None) as pool:
-            result = pool.map_async(generate_pattern, patterns)
-            result.wait()
+    with Pool(processes=None) as pool:
+        result = pool.map_async(generate_pattern, patterns)
+        result.wait()
 
 if __name__=='__main__':
     main()
