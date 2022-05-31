@@ -81,20 +81,16 @@ def main():
         logging.getLogger().setLevel(logging.INFO)
 
     bursts = [ {'name':'1b'      , 'bunch_spacing':1    , 'bunches_per_train':1   },
-               {'name':'2b_10000', 'bunch_spacing':10000, 'bunches_per_train':2   },
                {'name':'2b_100'  , 'bunch_spacing':100  , 'bunches_per_train':2   },
-               {'name':'2b_1'    , 'bunch_spacing':1    , 'bunches_per_train':2   },
-               {'name':'3b_1'    , 'bunch_spacing':1    , 'bunches_per_train':3   },
-               {'name':'10b_1'   , 'bunch_spacing':1    , 'bunches_per_train':10  },
-               {'name':'20b_1'   , 'bunch_spacing':1    , 'bunches_per_train':20  },
-               {'name':'50b_1'   , 'bunch_spacing':1    , 'bunches_per_train':50  },
-               {'name':'100b_1'  , 'bunch_spacing':1    , 'bunches_per_train':100 },
-               {'name':'200b_1'  , 'bunch_spacing':1    , 'bunches_per_train':200 },
-               {'name':'500b_1'  , 'bunch_spacing':1    , 'bunches_per_train':500 },
-               {'name':'1000b_1' , 'bunch_spacing':1    , 'bunches_per_train':1000},
-               {'name':'2000b_1' , 'bunch_spacing':1    , 'bunches_per_train':2000}, ]
+               {'name':'2b_10000', 'bunch_spacing':10000, 'bunches_per_train':2   }]
+    for i in range(2,21):
+        bursts.append( {'name':'{}b_1'.format(i), 'bunch_spacing':1, 'bunches_per_train':i} )
+    for i in [50,100,200,500,1000,2000]:
+        bursts.append( {'name':'{}b_1'.format(i), 'bunch_spacing':1, 'bunches_per_train':i} )
     for i in range(2,21):
         bursts.append( {'name':'100b_{}'.format(i), 'bunch_spacing':i, 'bunches_per_train':100} )
+    for i in [2,5,10,20,50,100]:
+        bursts.append( {'name':'{}b_9'.format(i), 'bunch_spacing':9, 'bunches_per_train':i} )
 
     #  Patterns list of dictionaries whose entries are:
     #    'name' : some descriptive identifier
