@@ -21,7 +21,7 @@ INSTALL_DIR=../
 HEADERS  = tpr.hh tprsh.hh tprdata.hh pattdata.hh
 
 tpr_SRCS  = tpr.cc pattdata.cc
-STATIC_LIBRARIES+=tpr
+#STATIC_LIBRARIES+=tpr
 
 test_pattdata_SRCS = test_pattdata.cc
 test_pattdata_LIBS = tpr pthread rt dl
