@@ -31,6 +31,7 @@ class Pv:
         return self.__value__
 
     def put(self, newval):
+        ret = None
         if self._pv.connected:
             ret = self._pv.put(newval, wait=False, timeout=60)
         self.__value__ = newval
