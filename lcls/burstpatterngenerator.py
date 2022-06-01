@@ -119,7 +119,7 @@ def main():
             p['aseq'] = {j:[{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j}] for j in destn.keys()}  # initialize allow table to one 0 Hz entry
             for a in d['allow']:
                 p['aseq'][a].append({'generator':'lookup', 'name':'10 Hz'})
-                p['aseq'][a].append(p['beam'][0])
+                p['aseq'][a].append(p['beam'][i])
 
             start = b['bunch_spacing'] * (b['bunches_per_train'] - 1)
             p['ctrl'][3] = {'seq':3, 'name':'end shutter', 'generator':'train',
