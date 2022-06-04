@@ -21,6 +21,8 @@ class Pattern(object):
         
 
     def _update(self):
+        if self.dest_stats is None:
+            return
         #  Update beam class calculations
         #  Since only a subset of allow sequences are simulated,
         #    determine the range of beam classes which they match

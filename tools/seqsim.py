@@ -415,16 +415,18 @@ def controlsim(pattern, start=0, stop=910000, mode='CW'):
     for i in range(18):
         fname = pattern+'/c{}.py'.format(i)
         config = {'title':'TITLE', 'descset':None, 'instrset':None}
-        if os.path.exists(fname):
+        if not os.path.exists(fname):
+            logging.warning(f'No programming for control sequence {i}')
+        else:
             exec(compile(open(fname).read(), fname, 'exec'), {}, config)
             seqdict['request'][i] = config['instrset']
 
-        fname = pattern+'/c{}.json'.format(i)
-        if os.path.exists(fname):
-            config = json.load(open(fname,mode='r'))
-            seqdict['encoding'][i] = config['encoding']
-        else:
-            raise RuntimeError('Pattern depends upon beam destination without encoding')
+            fname = pattern+'/c{}.json'.format(i)
+            if os.path.exists(fname):
+                config = json.load(open(fname,mode='r'))
+                seqdict['encoding'][i] = config['encoding']
+            else:
+                raise RuntimeError('Pattern depends upon beam destination without encoding')
 
     if not USE_PYSEQSIM:
         seq = SeqUser(acmode=(mode=='AC'),start=start,stop=stop)

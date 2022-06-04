@@ -61,7 +61,7 @@ class PatternSelectionQt(QtWidgets.QGroupBox):
         self.mode_select = cb
         Pattern_layout.addWidget(Modelabel, 0, 0)
         Pattern_layout.addWidget(cb, 0, 1)
-        Pattern_layout.setMargin(1)	
+#        Pattern_layout.setMargin(1)	
 
         hb = QtWidgets.QHBoxLayout()
         Modelabel = QtWidgets.QLabel('Pattern("bunches"_"spacing")')
@@ -140,7 +140,7 @@ class CWPatternSelectionQt(QtWidgets.QGroupBox):
         self.mode_select = cb
         Pattern_layout.addWidget(Modelabel, 0, 0)
         Pattern_layout.addWidget(cb, 0, 1)
-        Pattern_layout.setMargin(1)	
+#        Pattern_layout.setMargin(1)	
         hb = QtWidgets.QHBoxLayout()
         Modelabel = QtWidgets.QLabel('Frequency')
         Modelabel.setAlignment(QtCore.Qt.AlignRight)
@@ -253,6 +253,10 @@ class AllowSetSelectionQt(QtWidgets.QGroupBox):
         self.bgroups[a].setCurrentText(str(c))
 
     def _changed(self, arg):
+        if self.pattern.allow_seq is None:
+            self.allowseq_changed.emit(None)
+            return
+
         #  Construct the str list of allow sequences
 #        seq = [d[10-self.bgroups[i].currentIndex()] for i,d in self.pattern.allow_seq.items()]
         seq = [d[int(self.bgroups[i].currentText())] for i,d in self.pattern.allow_seq.items()]

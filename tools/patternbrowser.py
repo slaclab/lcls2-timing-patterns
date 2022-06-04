@@ -56,24 +56,26 @@ class PatternWaveform(pg.GraphicsWindow):
                        symbolBrush=(255,255,255),
                        symbol='s',pxMode=True, size=2)
 
-        if self.pattern.dest is None:
-            q0 = None
-        else:
-            buckets = self.pattern.dest[key][0]
-            dests   = self.pattern.dest[key][1] 
+        q0 = None
+        if self.pattern.dest is not None:
             #  Destination Plot
             a = self.getItem(0,0)
             if a is not None:
                 self.removeItem(a)
-            q0 = self.addPlot(title='Pattern',col=0,row=0)
-            q0.setLabel('left'  ,'Destn' )
-        #        q0.setLabel('bottom','Bucket')
-            q0.showGrid(True,True)
-            ymax = np.amax(dests,initial=0)
-            ymin = np.amin(dests,initial=15)
+                
+            if key is not None:
+                buckets = self.pattern.dest[key][0]
+                dests   = self.pattern.dest[key][1] 
 
-            plot(q0,buckets,dests)
-            q0.setRange(yRange=[ymin-0.5,ymax+0.5])
+                q0 = self.addPlot(title='Pattern',col=0,row=0)
+                q0.setLabel('left'  ,'Destn' )
+        #        q0.setLabel('bottom','Bucket')
+                q0.showGrid(True,True)
+                ymax = np.amax(dests,initial=0)
+                ymin = np.amin(dests,initial=15)
+
+                plot(q0,buckets,dests)
+                q0.setRange(yRange=[ymin-0.5,ymax+0.5])
 
         #  Control Signal Plot
         a = self.getItem(1,0)

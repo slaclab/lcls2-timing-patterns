@@ -168,6 +168,7 @@ class Ui_MainWindow(object):
 
 def main():
     logging.info(QtCore.PYQT_VERSION_STR)
+    logging.getLogger().setLevel(logging.DEBUG)
 
     parser = argparse.ArgumentParser(description='simple pattern browser gui')
     parser.add_argument("--path", help="path to pattern directories", required=True)
