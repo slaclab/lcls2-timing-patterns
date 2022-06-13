@@ -184,15 +184,18 @@ def run_mode(program,mode_pv):
     logging.info(f'mode: {mode}')
     cw_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestart'
     bu_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartBurst'
+    mn_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartExtra'
 
     log_pv   = LogPv(args.pv+':LOG')
     log_pv.append(f'Mode {mode}')
 
     cw_load_pv  = MonitoredPv(args.pv+':CONTINUOUS_LOAD' )
     bu_load_pv  = MonitoredPv(args.pv+':BURST_LOAD' )
+    man_load_pv = MonitoredPv(args.pv+':MANUAL_LOAD' )
     apply_pv    = MonitoredPv(args.pv+':APPLY')
 
-    chargpv = Pv(args.pv+':BUNCH_CHARGE')
+    chargpv   = Pv(args.pv+':BUNCH_CHARGE')
+    manpattpv = Pv(args.pv+':MANUAL_PATH')
 
     dst         = [DestPv(base=args.pv,mode=mode,dst=i,path=bu_path) for i in range(6)]
     found       = PatternFound(base=args.pv,dst=dst)
@@ -212,7 +215,15 @@ def run_mode(program,mode_pv):
         program.load(p,charge)
         base = p.split('/')[-1]
         log_pv.append(f'Loaded {base}')
-
+        
+    def man_load():
+        charge = chargpv.get()
+        p = mn_path+'/'+manpattpv.get()
+        logging.info(f'Loading path {p}')
+        program.load(p,charge)
+        base = p.split('/')[-1]
+        log_pv.append(f'Loaded {base}')
+        
 #    hbeatpv = Pv(args.pv+':HEARTBEAT')
 
     logging.info(f'Mode {mode} Ready')
@@ -220,6 +231,7 @@ def run_mode(program,mode_pv):
     #  Clear the updated flags
     cw_load_pv.updated()
     bu_load_pv.updated()
+    man_load_pv.updated()
     apply_pv  .updated()
 
     hbeat = 0
@@ -234,6 +246,10 @@ def run_mode(program,mode_pv):
                 logging.info('Burst Load')
                 bu_load()
                 logging.info('Burst Load complete')
+            if man_load_pv.updated():
+                logging.info('Manual Load')
+                man_load()
+                logging.info('Manual Load complete')
             if apply_pv.updated():
                 logging.info('Apply')
                 program.apply()
