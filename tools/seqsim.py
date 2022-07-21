@@ -420,9 +420,9 @@ def controlsim(pattern, start=0, stop=910000, mode='CW'):
             exec(compile(open(fname).read(), fname, 'exec'), {}, config)
             seqdict['request'][i] = config['instrset']
 
-    t0 = time.clock()
+    t0 = 0
     seq.control(seqdict)
-    t1 = time.clock()
+    t1 = 1
 
     #seq.xdata = compress(seq.xdata)
     fname = pattern+'/ctrl.json'
@@ -485,9 +485,9 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
                 raise RuntimeError('Pattern depends upon allow sequence - not found {}'.format(fname))
 
 #        key = str(pc)
-        t0 = time.clock()
+        t0 = 0
         seq.execute(seqdict)
-        t1 = time.clock()
+        t1 = 1
         print('-- execute {} seconds'.format(t1-t0))
         #  Compress by identifying runs
         #dest [key] = compress(seq.xdata,seq.ydata)

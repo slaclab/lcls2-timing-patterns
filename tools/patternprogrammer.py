@@ -24,11 +24,11 @@ class PatternProgrammer(object):
     def __init__(self, pv):
         #  Setup access to all sequence engines
         #    allow seq[14]=bcs jump,  allow seq[15]=manual jump
-        self.allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i))} for i in range(14)]
-        self.beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i))} for i in range(16)]
+        self.allowSeq   = []
+        self.beamSeq    = []
         self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i))} for i in range(18)]
-        self.allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
-        self.restartPv  = Pv(pv+':GBLSEQRESET')
+        self.allowTbl   = []
+        self.restartPv  = [Pv(pv+':EXP{:02d}:FORCERESET'.format(i)) for i in range(17)]
         self.chargePv   = Pv(pv+':BEAMCHRG')
         self.chargeEnPv = Pv(pv+':BEAMCHRGOVRD')
 
@@ -111,8 +111,6 @@ class PatternProgrammer(object):
                 subseq = 0
             seq['eng'].schedule(subseq,sync)
 
-        self.chargePv  .put(charge)
-        self.chargeEnPv.put(1)
 
         profile.append(('beamseq_prog',time.time()))
 
@@ -130,8 +128,9 @@ class PatternProgrammer(object):
         profile.append(('init',time.time()))
 
         # 2)  Restart
-        self.restartPv.put(1)
-        self.restartPv.put(0)
+        for pv in self.restartPv:
+            pv.put(1)
+            pv.put(0)
 
         profile.append(('restart',time.time()))
 
@@ -140,7 +139,7 @@ class PatternProgrammer(object):
         time.sleep(1.05)
 
         # 3)  Clean up
-        self.clean()
+        #self.clean()
 
         profile.append(('cleanup',time.time()))
 

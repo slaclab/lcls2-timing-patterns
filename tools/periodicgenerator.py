@@ -61,7 +61,7 @@ class PeriodicGenerator(object):
         if intv >= 2048:
             self.instr.append('iinstr = len(instrset)')
             #  _Wait for 2048 intervals
-            self.instr.append('instrset.append( FixedRateSync(marker=0, occ=2048) )')
+            self.instr.append('instrset.append( FixedRateSync(marker=6, occ=2048) )')
             self.ninstr += 1
             if intv >= 4096:
                 #  Branch conditionally to previous instruction
@@ -70,7 +70,7 @@ class PeriodicGenerator(object):
 
         rint = intv%2048
         if rint:
-            self.instr.append('instrset.append( FixedRateSync(marker=0, occ={} ) )'.format(rint))
+            self.instr.append('instrset.append( FixedRateSync(marker=6, occ={} ) )'.format(rint))
             self.ninstr += 1
 
     def _fill_instr(self):
