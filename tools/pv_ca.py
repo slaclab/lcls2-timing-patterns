@@ -15,6 +15,7 @@ class Pv:
         return self.__value__
 
     def put(self, newval):
+        print(self.pvname, newval)
         ret =  caput(self.pvname,newval)
         self.__value__ = newval
         return ret

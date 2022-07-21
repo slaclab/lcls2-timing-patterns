@@ -35,12 +35,11 @@ def main():
         pass
 
     patterns = [{'name':'mode.pattern'  , 
-                 'ctrl':[{'seq':0, 'period':[2**v for v in range(9)]},
-                         {'seq':1, 'period':[2**v for v in range(9,11)]},
-                         {'seq':2, 'period':[3**v for v in range(1,7)]},
-                         {'seq':3, 'period':[5**v for v in range(1,6)]},
-                         {'seq':4, 'period':[7**v for v in range(1,4)]},
-                          ]}]
+                 'ctrl':[{'seq':0, 'period':[2]},
+                         {'seq':1, 'period':[4]},
+                         {'seq':2, 'period':[8]},
+                         {'seq':3, 'period':[16]},
+                         {'seq':4, 'period':[32]}]}]
 
     destn = {}
     pcdef = {}
