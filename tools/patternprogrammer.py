@@ -1,4 +1,5 @@
 from tools.seqprogram import *
+from tools.pv_ca_fast import Pv
 from threading import Lock
 import json
 import os
@@ -24,10 +25,18 @@ class PatternProgrammer(object):
     def __init__(self, pv):
         #  Setup access to all sequence engines
         #    allow seq[14]=bcs jump,  allow seq[15]=manual jump
-        self.allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i)),'load':[],'apply':[]} for i in range(14)]
-        self.beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i)),'load':[],'apply':[]} for i in range(16)]
-        self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i)),'load':[],'apply':[]} for i in range(17)]
-        self.allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(16)]
+        pv_nalw = Pv(pv+':NALW')
+        pv_ndst = Pv(pv+':NDST')
+        pv_nexp = Pv(pv+':NEXP')
+        time.sleep(0.1)
+        nalw = pv_nalw.get()
+        ndst = pv_ndst.get()
+        nexp = pv_nexp.get()
+
+        self.allowSeq   = [{'eng':SeqUser(pv+':ALW{:02d}'.format(i)),'load':[],'apply':[]} for i in range(nalw)]
+        self.beamSeq    = [{'eng':SeqUser(pv+':DST{:02d}'.format(i)),'load':[],'apply':[]} for i in range(ndst)]
+        self.controlSeq = [{'eng':SeqUser(pv+':EXP{:02d}'.format(i)),'load':[],'apply':[]} for i in range(nexp)]
+        self.allowTbl   = [AlwUser(pv+':ALW{:02d}'.format(i)) for i in range(nalw)]
         self.restartPv  = Pv(pv+':GBLSEQRESET')
         self.chargePv   = Pv(pv+':BUNCH_CHARGE_RBV')
         self.chargeEnPv = Pv(pv+':BUNCH_CHARGE_OVRD')
@@ -56,7 +65,7 @@ class PatternProgrammer(object):
             start  = {}
             pc     = {}
             #  Loop over all allow sequences
-            for j in range(14):
+            for j in range(NALWSEQ):
                 #  Load the sequence from the pattern directory, if it exists
                 fname = pattern+'/allow_d{:}_{:}.json'.format(i,j)
                 if os.path.exists(fname):
@@ -76,7 +85,7 @@ class PatternProgrammer(object):
             lpc  = 0
             lsta = 0
             iseq = 0
-            for j in range(14):
+            for j in range(NALWSEQ):
                 if pc[iseq]==j:
                     lseq = newseq[iseq]
                     lpc  = pc    [iseq]

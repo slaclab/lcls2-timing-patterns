@@ -158,7 +158,7 @@ def seq_lookup(arg):
          '1/10/100 Hz' : {'instr':['ControlRequest(7)', # fire 1/10/100Hz bits
                                    'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=1,counter=0,value=8)',  # fire 100Hz bit
                                    'FixedRateSync("100H",1)','ControlRequest(6)','Branch.conditional(line=1,counter=1,value=8)',  # fire 10/100Hz bits
-                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=8,counter=0,value=8)',  # fire 100Hz bit
+                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=7,counter=0,value=8)',  # fire 100Hz bit
                                    'FixedRateSync("1H",1)','Branch.unconditional(0)'],
                           'async_start':10},
          '1/10/10 Hz' : {'instr':['ControlRequest(7)', # fire 1/10/10Hz bits

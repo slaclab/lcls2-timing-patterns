@@ -1,5 +1,6 @@
 import argparse
 import os
+from .globals import *
 
 #
 #  Arguments are:
@@ -13,7 +14,7 @@ import os
 #
 class TrainGenerator(object):
     def __init__(self, start_bucket=0, 
-                 train_spacing=910000, trains_per_second=1, 
+                 train_spacing=TPGSEC, trains_per_second=1, 
                  bunch_spacing=1, bunches_per_train=1, 
                  charge=0, repeat=False):
         self.start_bucket      = start_bucket
@@ -85,12 +86,12 @@ class TrainGenerator(object):
 
     def _fill_instr(self):
         #  How many times to repeat beam requests in "1 second"
-        #  nint = 910000/intv
+        #  nint = TPGSEC/intv
         #  Global sync counts as 1 cycle
         nint = self.trains_per_second
         intv = self.train_spacing
         if nint==0:
-            nint = 910000/intv
+            nint = TPGSEC/intv
 
         if nint>1:
             print('Generating {} _trains with {} _train spacing'.
@@ -101,7 +102,7 @@ class TrainGenerator(object):
                          self.bunch_spacing))
 
         #  Initial validation
-        if ((nint-1)*intv+(self.bunches_per_train-1)*self.bunch_spacing) >= 910000:
+        if ((nint-1)*intv+(self.bunches_per_train-1)*self.bunch_spacing) >= TPGSEC:
             raise ValueError
 
         if self.start_bucket>0:

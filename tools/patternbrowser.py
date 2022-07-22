@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from tools.pattern import Pattern
 from tools.qt import *
+from tools.globals import *
 #from tools.compress import compress, decompress
 import pyqtgraph as pg
 import numpy as np
@@ -91,7 +92,7 @@ class PatternWaveform(pg.GraphicsWindow):
         for i,seq in self.pattern.ctrl.items():
             for bit,buckets in seq.items():
                 x.extend(buckets)
-                y.extend([int(i)*16+int(bit)]*len(buckets))
+                y.extend([int(i)*CTLBITS+int(bit)]*len(buckets))
 
         ymax = np.amax(y,initial=0)
         ymin = np.amin(y,initial=255)

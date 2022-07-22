@@ -1,3 +1,5 @@
+from .globals import *
+
 #
 #  Simulate trigger logic based on data from simulation output (seqsim.json)
 #
@@ -75,9 +77,9 @@ def triggersim(args):
         z        = 0
         xdata    = []
         ydata    = []
-        for bucket in range(910000):
+        for bucket in range(TPGSEC):
             fixedrates = [(bucket%i)==0 for i in FixedIntvs]
-            ts         = int(bucket*360/910000)
+            ts         = int(bucket*360/TPGSEC)
             acrates    = ([(int(ts/6)%i)==0 for i in ACIntvs],(ts%6))
             dest       = None
             if bucket==destdata[0][z]:

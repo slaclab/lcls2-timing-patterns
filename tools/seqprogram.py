@@ -1,4 +1,5 @@
 import time
+from tools.globals import *
 from tools.seq import *
 #from tools.pv_ca import Pv
 from tools.pv_ca_fast import Pv
@@ -14,7 +15,7 @@ class SeqUser:
         self.ninstr   = Pv(prefix+':INSTRCNT')
         self.desc     = Pv(prefix+':DESCINSTRS')
         self.instr    = Pv(prefix+':INSTRS')
-        self.idxseq   = [Pv(prefix+':SEQ{:02d}IDX'.format(i)) for i in range(64)]
+        self.idxseq   = [Pv(prefix+':SEQ{:02d}IDX'.format(i)) for i in range(MAXSEQ)]
         self.seqname  = Pv(prefix+':SEQ00DESC')
         self.idxseqr  = Pv(prefix+':RMVIDX')
         self.cancel   = Pv(prefix+':CNSL')
@@ -212,7 +213,7 @@ class AlwUser:
     def __init__(self, base):
         prefix = base
         self.tbl = {}
-        for i in range(16):
+        for i in range(NALWSEQ):
             self.tbl[i] = {'idx'   :Pv(prefix+':MPS{:02d}IDX'      .format(i)),
                            'start' :Pv(prefix+':MPS{:02d}STARTADDR'.format(i)),
                            'pclass':Pv(prefix+':MPS{:02d}PCLASS'   .format(i))}
@@ -228,7 +229,7 @@ class AlwUser:
 
     def safe(self):
         state = self.state.get()
-        for i in range(14):
+        for i in range(NALWSEQ):
             self.tbl[i]['idx'   ].put(0)
             self.tbl[i]['start' ].put(0)
             self.tbl[i]['pclass'].put(0)

@@ -1,6 +1,7 @@
 import pyqtgraph as pg
 import numpy
 import argparse
+from tools.globals import *
 
 f=None
 verbose=False
@@ -53,7 +54,7 @@ class SeqUser:
         self.xdata = []
         self.ydata = []
         self.stats = []
-        for i in range(16):
+        for i in range(MAXDST):
             self.stats.append( {'sum':0,'min':910000,'max':0,'last':-1} )
 
     def execute(self, title, instrset, descset):
@@ -73,7 +74,7 @@ class SeqUser:
                           (frame,engine.instr,request))
 
                 if request!=0:
-                    for i in range(16):
+                    for i in range(MAXDST):
                         if (request&(1<<i)):
                             self.stats[i]['sum'] += 1
                             if self.stats[i]['last']>=0:
@@ -92,7 +93,7 @@ class SeqUser:
                 request = int(engine.request)
 
         print('{:7s} {:7s} {:7s} {:7s}'.format('Line','Sum','Min Intv','Max Intv'))
-        for i in range(16):
+        for i in range(MAXDST):
             s = self.stats[i]
             if s['sum']>0:
                 print('{:7d} {:7d} {:7d} {:7d}'.format(i,s['sum'],s['min'],s['max']))

@@ -3,6 +3,7 @@ import os
 import logging
 import argparse
 import pprint
+from tools.globals import *
 
 class Pattern(object):
 
@@ -30,7 +31,7 @@ class Pattern(object):
         self.allow_seq = {}
         for d in self.dest_stats['allows']:
             beamclass = {}
-            for s in range(14):  # Loop over allow sequences
+            for s in range(MAXSEQ):  # Loop over allow sequences
                 fname = self.path+'/allow_d{}_{}.json'.format(d,s)
                 if os.path.exists(fname):
                     maxQ = json.load(open(fname,'r'))['maxQ']

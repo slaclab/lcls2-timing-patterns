@@ -9,6 +9,7 @@ import logging
 from collections import deque
 from itertools import chain
 #from .compress import compress
+from .globals import *
 
 import pyseqsim
 
@@ -202,7 +203,7 @@ class SeqUser:
             request_engines[i] = Engine(self.acmode)
             self.stats[i] = {}
             self.xdata[i] = {}
-            for j in range(16):
+            for j in range(MAXDST):
                 self.stats[i][j] = {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1} 
                 self.xdata[i][j] = []
             slast[i] = {}
@@ -232,7 +233,7 @@ class SeqUser:
                         logging.debug('\tframe: {}  instr {}  request {:x}'.format
                                       (frame,engine.instr,request))
                             
-                        for j in range(16):
+                        for j in range(MAXDST):
                             if (request & (1<<j)) != 0:
                                 self.stats[i][j]['sum'] += 1
                                 if self.stats[i][j]['last']>=0:
@@ -267,7 +268,7 @@ class SeqUser:
 
     def power(self, instrset, qwin):
 
-        result = {'spacing':910000}
+        result = {'spacing':TPGSEC}
         frames = {}  # dictionary of requested buckets for each window
         for q in qwin:
             if q is not None:
@@ -373,7 +374,7 @@ def allowSetGen(dests,seqs):
 
 #  simulate the allow sequence for determining power class
 #  the result will be the range of charges for which the sequence meets each power class limits
-def allowsim(instrset, encoding, pc, start=0, stop=910000, mode='CW'):
+def allowsim(instrset, encoding, pc, start=0, stop=TPGSEC, mode='CW'):
 
     #  Find all the integration windows
     qwin = { p.winQ for p in pc }
@@ -407,12 +408,12 @@ def allowsim(instrset, encoding, pc, start=0, stop=910000, mode='CW'):
 
     return result
 
-def controlsim(pattern, start=0, stop=910000, mode='CW'):
+def controlsim(pattern, start=0, stop=TPGSEC, mode='CW'):
     ctrl    = {}
     seqdict = {}
     seqdict['request'] = {}
     seqdict['encoding'] = {}
-    for i in range(18):
+    for i in range(MAXCTL):
         fname = pattern+'/c{}.py'.format(i)
         config = {'title':'TITLE', 'descset':None, 'instrset':None}
         if not os.path.exists(fname):
@@ -451,7 +452,7 @@ def controlsim(pattern, start=0, stop=910000, mode='CW'):
 
     return seq
 
-def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], seq_list={}):
+def seqsim(pattern, start=0, stop=TPGSEC, mode='CW', destn_list=[], pc_list=[], seq_list={}):
     global destn
     global pcdef
     destn = destn_list
@@ -460,7 +461,7 @@ def seqsim(pattern, start=0, stop=910000, mode='CW', destn_list=[], pc_list=[], 
     #  Determine which destination power classes need to be iterated over
     beams  = []
     allows = []
-    for i in range(16):
+    for i in range(MAXDST):
         fname = pattern+'/d{}.py'.format(i)
         if os.path.exists(fname):
             beams .append(i)

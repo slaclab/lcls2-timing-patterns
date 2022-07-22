@@ -31,19 +31,20 @@ def myunion(s0,s1):
 
 class PeriodicGenerator(object):
     #  Beam Requests
-    def __init__(self, period, start, charge):
+    def __init__(self, period, start, charge, marker='\"910kH\"'):
         self.charge = charge
         self.async_start       = None
-        self.__init__(period, start, output)
+        self.__init__(period, start, marker)
 
     #  Control Requests
-    def __init__(self, period, start):
+    def __init__(self, period, start, marker='\"910kH\"'):
         if isinstance(period,list):
             self.period    = period
             self.start     = start
         else:
             self.period    = [period]
             self.start     = [start]
+        self.marker = marker
 
         if not numpy.less(start,period).all():
             raise ValueError('start must be less than period')
@@ -61,7 +62,7 @@ class PeriodicGenerator(object):
         if intv >= 2048:
             self.instr.append('iinstr = len(instrset)')
             #  _Wait for 2048 intervals
-            self.instr.append('instrset.append( FixedRateSync(marker="910kH", occ=2048) )')
+            self.instr.append(f'instrset.append( FixedRateSync(marker={self.marker}, occ=2048) )')
             self.ninstr += 1
             if intv >= 4096:
                 #  Branch conditionally to previous instruction
@@ -70,7 +71,7 @@ class PeriodicGenerator(object):
 
         rint = intv%2048
         if rint:
-            self.instr.append('instrset.append( FixedRateSync(marker="910kH", occ={} ) )'.format(rint))
+            self.instr.append(f'instrset.append( FixedRateSync(marker={self.marker}, occ={rint} )' )
             self.ninstr += 1
 
     def _fill_instr(self):

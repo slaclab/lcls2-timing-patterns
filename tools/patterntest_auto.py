@@ -9,6 +9,7 @@ from tools.seqprogram import *
 from tools.patternprogrammer import PatternProgrammer
 from tools.pattern import Pattern
 from tools.mpssim import MpsSim
+from tools.globals import *
 
 def toIntList(l):
     lq = l.strip('[(,').rstrip(')],')
@@ -29,13 +30,13 @@ class Programmer(object):
         self.programmer = PatternProgrammer(pv)
                     
         self.ratepv = {}
-        self.ratev  = [0.]*16
-        self.sumv   = [0]*16
-        self.statev = [0]*16
+        self.ratev  = [0.]*MAXDST
+        self.sumv   = [0]*MAXDST
+        self.statev = [0]*MAXDST
         self.getstatepv = {}
         self.setstatepv = {}
         #  Setup the rate monitor counters
-        for i in range(16):
+        for i in range(MAXDST):
             Pv(pv+':RM{:02d}:CTRL'     .format(i)).put(0)  # OFF
             Pv(pv+':RM{:02d}:RATEMODE' .format(i)).put(0)  # FixedRate
             Pv(pv+':RM{:02d}:FIXEDRATE'.format(i)).put(0) # 1MHz
@@ -54,7 +55,7 @@ class Programmer(object):
         self.programmer.load(self.pattern.path,self.pattern.charge) 
 
     def apply(self):
-        self.sumv = [0]*16
+        self.sumv = [0]*MAXDST
         self.programmer.apply()
 
     def _rate_update(self, destn):

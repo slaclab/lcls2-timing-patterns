@@ -1,6 +1,7 @@
 from .seqlookup         import seq_lookup
 from .periodicgenerator import PeriodicGenerator
 from .traingenerator    import TrainGenerator
+from .globals           import *
 import collections
 
 
@@ -11,13 +12,13 @@ def generator(arg):
         return ('{}'.format(arg['name']),gen(**{'instr':seq['instr'],'async_start':seq['async_start']}))
 
     if arg['generator']=='train':
-        arg['train_spacing']     = 910000
+        arg['train_spacing']     = TPGSEC
         arg['trains_per_second'] = 1
 
         span = (arg['train_spacing']*(1-arg['trains_per_second']) +
                 arg['bunch_spacing']*(arg['bunches_per_train']-1) +
                 arg['start_bucket'])
-        if span > 910000:
+        if span > TPGSEC:
             print('Bunch train spans the 1Hz marker.  Validation may not match.')
             print('Extending the validation simulation to the next 1-second interval')
             print('  may be necessary.')

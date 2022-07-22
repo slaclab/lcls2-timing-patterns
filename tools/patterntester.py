@@ -7,6 +7,7 @@ from tools.patternprogrammer import PatternProgrammer
 from tools.mpssim import MpsSim
 from tools.pattern import Pattern
 from tools.qt import *
+from tools.globals import *
 
 def toIntList(l):
     lq = l.strip('[(,').rstrip(')],')
@@ -46,13 +47,13 @@ class Programmer(QtWidgets.QGroupBox):
         vb.addLayout(hb)
 
         self.table = QtWidgets.QTableWidget()
-        names = ['D'+str(b) for b in range(16)]
+        names = ['D'+str(b) for b in range(MAXDST)]
         self.table.setRowCount(len(names)) # sum, first, last, min, max
         self.table.setVerticalHeaderLabels(names)
         stats = ['Class','Rate','Sum']
         self.table.setColumnCount(len(stats))
         self.table.setHorizontalHeaderLabels(stats)
-        for i in range(16):
+        for i in range(MAXDST):
             self.table.setItem(i,0,QtWidgets.QTableWidgetItem(''))
             self.table.setItem(i,1,QtWidgets.QTableWidgetItem(''))
             self.table.setItem(i,2,QtWidgets.QTableWidgetItem(''))
@@ -63,11 +64,11 @@ class Programmer(QtWidgets.QGroupBox):
         self.update_table.connect(self._table_update)
 
         self.ratepv = {}
-        self.sumv   = [0]*16
+        self.sumv   = [0]*MAXDST
         self.getstatepv = {}
         self.setstatepv = {}
         #  Setup the rate monitor counters
-        for i in range(16):
+        for i in range(MAXDST):
             Pv(pv+':RM{:02d}:CTRL'     .format(i)).put(0)  # OFF
             Pv(pv+':RM{:02d}:RATEMODE' .format(i)).put(0)  # FixedRate
             Pv(pv+':RM{:02d}:FIXEDRATE'.format(i)).put(0) # 1MHz
@@ -93,10 +94,10 @@ class Programmer(QtWidgets.QGroupBox):
 
     def _apply(self):
         self._applyB.setEnabled(False)
-        self.sumv = [0]*16
+        self.sumv = [0]*MAXDST
         self.programmer.apply()
         self._applyB.setEnabled(True)
-        for i in range(16):
+        for i in range(MAXDST):
             self.update_table.emit(i, 2, str(self.sumv[i]))
 
     def _table_update(self, row, col, v):

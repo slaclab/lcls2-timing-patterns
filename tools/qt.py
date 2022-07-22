@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
 from tools.pattern import Pattern
+from tools.globals import *
 import glob
 import os
 
@@ -286,17 +287,25 @@ class StatisticsTableQt(QtWidgets.QGroupBox):
             return
         ikey = toIntList(key)
         stats = self.pattern.dest_stats[key]
-        beams = ['D'+str(b) for b in self.pattern.dest_stats['beams']]
+
+        beams = []
+        for row,b in enumerate(self.pattern.dest_stats['beams']):
+            if stats[str(b)]['sum']>0:
+                beams.append(f'D{b}')
 
         names  = ['sum','first','last','min','max']
-        self.table.setRowCount(len(stats))
+        self.table.setRowCount(len(beams))
         self.table.setVerticalHeaderLabels(beams)
         self.table.setHorizontalHeaderLabels(names)
         self.table.setColumnCount(len(names))
 
+        irow = 0
         for row,b in enumerate(self.pattern.dest_stats['beams']):
-            for col,n in enumerate(names):
-                self.table.setItem(row,col,QtWidgets.QTableWidgetItem(str(stats[str(b)][n])))
+            if stats[str(b)]['sum']>0:
+                for col,n in enumerate(names):
+                    self.table.setItem(irow,col,
+                                       QtWidgets.QTableWidgetItem(str(stats[str(b)][n])))
+                irow += 1
 
         self.table.resizeColumnsToContents()
 
@@ -314,7 +323,12 @@ class CtrlStatsTableQt(QtWidgets.QGroupBox):
         if self.pattern.ctrl_stats is None:
             return
         stats = self.pattern.ctrl_stats
-        cnames = ['C{:2s}:{:2s}'.format(str(int(b/16)),str(b%16)) for b in range(18*16)]
+
+        cnames = []
+        for seq,b in self.pattern.ctrl_stats.items():
+            for bit,s in b.items():
+                if s['sum']>0:
+                    cnames.append(f'C{seq}:{bit}')
 
         names  = ['sum','first','last','min','max']
         self.table.setRowCount(len(cnames))
@@ -322,10 +336,12 @@ class CtrlStatsTableQt(QtWidgets.QGroupBox):
         self.table.setHorizontalHeaderLabels(names)
         self.table.setColumnCount(len(names))
 
-        for seq,b in self.pattern.ctrl_stats.items():
+        irow = 0
+        for seq,b in stats.items():
             for bit,s in b.items():
-                row = int(seq)*16+int(bit)
-                for col,n in enumerate(names):
-                    self.table.setItem(row,col,QtWidgets.QTableWidgetItem(str(s[n])))
+                if s['sum']>0:
+                    for col,n in enumerate(names):
+                        self.table.setItem(irow,col,QtWidgets.QTableWidgetItem(str(s[n])))
+                    irow += 1
 
         self.table.resizeColumnsToContents()
