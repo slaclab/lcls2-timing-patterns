@@ -39,7 +39,19 @@ def main():
                          {'seq':1, 'period':[4]},
                          {'seq':2, 'period':[8]},
                          {'seq':3, 'period':[16]},
-                         {'seq':4, 'period':[32]}]}]
+                         {'seq':4, 'period':[32]},
+                         {'seq':5, 'period':[64]},
+                         {'seq':6, 'period':[128]},
+                         {'seq':7, 'period':[256]},
+                         {'seq':8, 'period':[3]},
+                         {'seq':9, 'period':[9]},
+                         {'seq':10, 'period':[27]},
+                         {'seq':11, 'period':[81]},
+                         {'seq':12, 'period':[243]},
+                         {'seq':13, 'period':[5]},
+                         {'seq':14, 'period':[25]},
+                         {'seq':15, 'period':[125]},
+                         {'seq':16, 'period':[625]}]}]
 
     destn = {}
     pcdef = {}
