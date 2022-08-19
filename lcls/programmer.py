@@ -26,22 +26,38 @@ rate_names = {'0Hz'   :'0 Hz',
               '100Hz' :'100 Hz',
               '200Hz' :'200 Hz',
               '500Hz' :'500 Hz',
-              '1000Hz':'1 kHz',
-              '1400Hz':'1.4 Hz',
-              '5000Hz':'5 kHz',
+              '1kHz':'1 kHz',
+              '1.4kHz':'1.4 kHz',
+              '5kHz':'5 kHz',
               '10kHz' :'10 kHz',
               '23kHz' :'23 kHz',
-              '33kHz' :'33 kkHz',
+              '33kHz' :'33 kHz',
               '46kHz' :'46 kHz',
               '93kHz' :'93 kHz',
               '464kHz':'464 kHz',
               '929kHz':'929 kHz',}
+ac_rate_names = {'0Hz'   :'0 Hz', 
+              '1Hz'   :'1 Hz',
+              '10Hz'  :'10 Hz',
+              '30Hz'  :'30 Hz',
+              '60Hz' :'60 Hz',
+              '90Hz' :'90 Hz',
+              '110Hz' :'110 Hz',
+              '119Hz':'119 Hz',
+              '120kHz':'120 Hz',}
 
 #    Choose downstream most destination with rate
 def get_cw_dst(dst_list):
     dst = dst_list[0]
     for i in dst_list:
         if i.cw_selected():
+            dst = i
+    return dst
+
+def get_ac_dst(dst_list):
+    dst = dst_list[0]
+    for i in dst_list:
+        if i.ac_selected():
             dst = i
     return dst
 
@@ -142,7 +158,25 @@ class DestPv:
         return self.get_rate()!='0Hz'
 
     def cw_pattern(self,path):
-        rates = rate_names[self.get_rate()]
+        rate = self.get_rate()
+        if 'k' in rate:
+            rates = rate[:-3] + ' kHz'
+        else:
+            rates = rate[:-2] + ' Hz'
+        
+        #rates = rate_names[self.get_rate()]
+        return f'{path}/{self.name}.{rates}'
+
+    def ac_selected(self):
+        return self.get_rate()!='0Hz'
+
+    def ac_pattern(self,path):
+        #rates = rate_names[self.get_rate()]
+        rate = self.get_rate()
+        if 'k' in rate:
+            rates = rate[:-3] + ' kHz'
+        else:
+            rates = rate[:-2] + ' Hz'
         return f'{path}/{self.name}.{rates}'
 
     def burst_selected(self):
@@ -183,26 +217,48 @@ def run_mode(program,mode_pv):
     mode = mode_pv.pv.get()
     logging.info(f'mode: {mode}')
     cw_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestart'
+    ac_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestart'
     bu_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartBurst'
     mn_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartExtra'
 
     log_pv   = LogPv(args.pv+':LOG')
     log_pv.append(f'Mode {mode}')
-
+    
     cw_load_pv  = MonitoredPv(args.pv+':CONTINUOUS_LOAD' )
+    #ac_load_pv  = MonitoredPv(args.pv+':CONTINUOUS_LOAD' )
     bu_load_pv  = MonitoredPv(args.pv+':BURST_LOAD' )
     man_load_pv = MonitoredPv(args.pv+':MANUAL_LOAD' )
     apply_pv    = MonitoredPv(args.pv+':APPLY')
 
+    #Debug prints
+    log_pv.append(f'Monitoring started...')
+
     chargpv   = Pv(args.pv+':BUNCH_CHARGE')
     manpattpv = Pv(args.pv+':MANUAL_PATH')
 
+    rate_pv = args.pv+':'+mode+':RATEMODE'
+    ratePV = Pv(rate_pv)
+    ratetype = ratePV.get()
+
+
     dst         = [DestPv(base=args.pv,mode=mode,dst=i,path=bu_path) for i in range(6)]
+
+    #Debug prints 
+    log_pv.append(f'Selected destination {dst}')
+
     found       = PatternFound(base=args.pv,dst=dst)
 
     def cw_load():
         charge = chargpv.get()
         p = get_cw_dst(dst).cw_pattern(cw_path)
+        logging.info(f'Loading path {p}')
+        program.load(p,charge)
+        base = p.split('/')[-1]
+        log_pv.append(f'Loaded {base}')
+
+    def ac_load():
+        charge = chargpv.get()
+        p = get_ac_dst(dst).ac_pattern(ac_path)
         logging.info(f'Loading path {p}')
         program.load(p,charge)
         base = p.split('/')[-1]
@@ -224,7 +280,7 @@ def run_mode(program,mode_pv):
         base = p.split('/')[-1]
         log_pv.append(f'Loaded {base}')
         
-#    hbeatpv = Pv(args.pv+':HEARTBEAT')
+    hbeatpv = Pv(args.pv+':PATT_PROG_HRTBT')
 
     logging.info(f'Mode {mode} Ready')
 
@@ -238,10 +294,14 @@ def run_mode(program,mode_pv):
     while(True):
         for i in range(10):
             time.sleep(0.1)
-            if cw_load_pv.updated():
+            if cw_load_pv.updated() and ratetype == 0:
                 logging.info('CW Load')
                 cw_load()
                 logging.info('CW Load complete')
+            if cw_load_pv.updated() and ratetype == 1:
+                logging.info('AC Load')
+                ac_load()
+                logging.info('AC Load complete')
             if bu_load_pv.updated():
                 logging.info('Burst Load')
                 bu_load()
@@ -258,8 +318,8 @@ def run_mode(program,mode_pv):
         found.process()
 
         hbeat += 1
-#        logging.debug(f'hbeat {hbeat}')
-#        hbeatpv.put(alive)
+        logging.debug(f'hbeat {hbeat}')
+        hbeatpv.put(hbeat)
 
         if mode_pv.updated():
             logging.debug(f'---mode changed---')
