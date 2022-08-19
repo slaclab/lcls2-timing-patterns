@@ -8,6 +8,7 @@ def lcls_destn():
     d = {}
     d[0] = {'name':'0 SC1 Laser'           ,'allow':[0]}
     d[1] = {'name':'1 SC1 DIAG0'           ,'allow':[1]}
+#    d[2] = {'name':'2 SC1 DUMPBSY'         ,'allow':[2,0]}
     d[2] = {'name':'2 SC1 DUMPBSY'         ,'allow':[2]}
     d[3] = {'name':'3 SC1 DUMPHXR'         ,'allow':[2,3]}
     d[4] = {'name':'4 SC1 DUMPSXR'         ,'allow':[2,4]}

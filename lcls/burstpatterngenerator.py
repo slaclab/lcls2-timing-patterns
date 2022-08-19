@@ -87,6 +87,12 @@ def main():
         bursts.append( {'name':'{}b_1'.format(i), 'bunch_spacing':1, 'bunches_per_train':i} )
     for i in [50,100,200,500,1000,2000]:
         bursts.append( {'name':'{}b_1'.format(i), 'bunch_spacing':1, 'bunches_per_train':i} )
+#BCS Requested additional patterns to allow 2us spacing - laser amplifier replacement needed for 1us
+    for i in range(2,21):
+        bursts.append( {'name':'{}b_2'.format(i), 'bunch_spacing':2, 'bunches_per_train':i} )
+    for i in [50,100,200,500,1000,2000]:
+        bursts.append( {'name':'{}b_2'.format(i), 'bunch_spacing':2, 'bunches_per_train':i} )
+#end BCS patterns
     for i in range(2,21):
         bursts.append( {'name':'100b_{}'.format(i), 'bunch_spacing':i, 'bunches_per_train':100} )
     for i in [2,5,10,20,50,100]:

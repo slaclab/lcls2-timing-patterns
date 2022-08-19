@@ -14,7 +14,7 @@ def power_class(config, charge):
     maxQ = config['maxQ']
     bc = -1
     for c in range(len(maxQ)-1,-1,-1):
-        if charge > maxQ[c]:
+        if charge >= maxQ[c]:
             break
         bc = c
     if bc >= 0:
