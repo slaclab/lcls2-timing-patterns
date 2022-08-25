@@ -10,6 +10,7 @@ import json
 from multiprocessing import Pool
 import logging
 import time
+import subprocess
 
 args  = None
 destn = lcls.lcls_destn()
@@ -157,6 +158,9 @@ def main():
     with Pool(processes=None) as pool:
         result = pool.map_async(generate_pattern, patterns)
         result.wait()
+
+    # Create a tar.gz file
+    subprocess.call('tar -czf '+args.output+'.tar.gz '+args.output,shell=True)
 
 if __name__=='__main__':
     main()
