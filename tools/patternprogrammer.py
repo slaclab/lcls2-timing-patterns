@@ -177,5 +177,6 @@ if __name__ == '__main__':
     parser.add_argument("--pv"     , default='TPG:SYS2:2', help="TPG base pv; e.g. ")
     args = parser.parse_args()
 
-    cProfile.run('main(args)')
+    # profiler, only needed for debugging
+    #cProfile.run('main(args)')
     main(args)
