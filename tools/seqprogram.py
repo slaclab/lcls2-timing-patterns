@@ -21,7 +21,7 @@ class SeqUser:
         self.cancel   = Pv(prefix+':CNSL')
         self.idxrun   = Pv(prefix+':RUNIDX')
         self.idxaddr  = Pv(prefix+':JUMPADDR')
-        self.syncstart= Pv(prefix+':SYNCSEQ')
+#        self.syncstart= Pv(prefix+':SYNCSEQ')
         self.start    = Pv(prefix+':SCHEDRESETFLAG')
         self.reset    = Pv(prefix+':FORCERESET')
         self.reqmask  = Pv(prefix+':REQMASK')
@@ -196,7 +196,8 @@ class SeqUser:
     def begin(self, wait=False):
         self.idxaddr.put(0)
         self.idxrun.put(self._idx)
-        self.syncstart.put(FixedRateSync(0)._schedule())
+        # not defined in SMuRF version for some reason.  See ESCRYODET-897.
+        #self.syncstart.put(FixedRateSync(0)._schedule())
         self.start .put(0)
         self.reset .put(1)
         self.reset .put(0)
@@ -210,7 +211,8 @@ class SeqUser:
         idx = self._idx if subseq<0 else subseq
         self.idxaddr.put(0)
         self.idxrun.put(idx)
-        self.syncstart.put(sync._schedule())
+        # not defined in SMuRF version for some reason.  See ESCRYODET-897.        
+        #self.syncstart.put(sync._schedule())
         self.start.put(1)
 
     #  Stop sequence, clean out all subsequences, load new sequence, and start

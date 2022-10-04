@@ -2,5 +2,5 @@ from tools.seq import *
 
 instrset = []
 instrset.append( ControlRequest(1) )
-instrset.append( FixedRateSync(marker=6, occ=600 ) )
+instrset.append( FixedRateSync(marker=6, occ=5 ) )
 instrset.append( Branch.unconditional(0) )

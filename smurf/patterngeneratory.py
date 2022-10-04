@@ -35,22 +35,22 @@ def main():
         pass
 
     patterns = [{'name':'mode.pattern'  , 
-                 'ctrl':[{'seq':0, 'period':[240]},
-                         {'seq':1, 'period':[480]},
-                         {'seq':2, 'period':[960]},
-                         {'seq':3, 'period':[1920]},
-                         {'seq':4, 'period':[3840]},
-                         {'seq':5, 'period':[7680]},
-                         {'seq':6, 'period':[15360]},
-                         {'seq':7, 'period':[30720]},
-                         {'seq':8, 'period':[360]},
-                         {'seq':9, 'period':[1080]},
-                         {'seq':10, 'period':[3240]},
-                         {'seq':11, 'period':[9720]},
-                         {'seq':12, 'period':[29160]},
-                         {'seq':13, 'period':[600]},
-                         {'seq':14, 'period':[3000]},
-                         {'seq':15, 'period':[15000]}]}]
+                 'ctrl':[{'seq':0, 'period':[2]},
+                         {'seq':1, 'period':[4]},
+                         {'seq':2, 'period':[8]},
+                         {'seq':3, 'period':[16]},
+                         {'seq':4, 'period':[32]},
+                         {'seq':5, 'period':[64]},
+                         {'seq':6, 'period':[128]},
+                         {'seq':7, 'period':[256]},
+                         {'seq':8, 'period':[3]},
+                         {'seq':9, 'period':[9]},
+                         {'seq':10, 'period':[27]},
+                         {'seq':11, 'period':[81]},
+                         {'seq':12, 'period':[243]},
+                         {'seq':13, 'period':[5]},
+                         {'seq':14, 'period':[25]},
+                         {'seq':15, 'period':[125]}]}]
 
     destn = {}
     pcdef = {}
