@@ -52,6 +52,7 @@ class TrainGenerator(object):
                     #self.instr.append('instrset.append(ControlRequest({}))'.format(self.reqs[i])) 
                     self.instr.append('instrset.append(ControlRequest({}))'.format(1)) # Need to change to the above code later on
                 #self.instr.append('instrset.append(BeamRequest({}))'.format(self.charge))
+                self.instr.append('instrset.append(Branch.conditional(line=iinstr,counter={},value={}))'.format(cc[0],0xfff))
                 self.instr.append('instrset.append(Branch.conditional(line=iinstr,counter={},value={}))'.format(cc[1],(rb//0x1000) -1))
                 rb = rb & 0xfff
 
@@ -101,7 +102,7 @@ class TrainGenerator(object):
                   format(self.bunches_per_train,
                          self.bunch_spacing))
 
-        #  Initial validation
+        #  Initial validation: train doesn't exceed one second
         if ((nint-1)*intv+(self.bunches_per_train-1)*self.bunch_spacing) >= TPGSEC:
             raise ValueError
 

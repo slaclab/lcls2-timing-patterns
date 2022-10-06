@@ -71,7 +71,7 @@ class PeriodicGenerator(object):
 
         rint = intv%2048
         if rint:
-            self.instr.append(f'instrset.append( FixedRateSync(marker={self.marker}, occ={rint} )' )
+            self.instr.append(f'instrset.append( FixedRateSync(marker={self.marker}, occ={rint} ) )' )
             self.ninstr += 1
 
     def _fill_instr(self):
