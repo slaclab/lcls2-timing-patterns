@@ -6,6 +6,7 @@ import argparse
 import time
 import cProfile
 import logging
+from epics import caget,caput
 
 #  Find the lowest power class this sequence satisfies
 #  It must satisfy all higher power classes
@@ -127,10 +128,23 @@ class PatternProgrammer(object):
         profile = []
         profile.append(('init',time.time()))
 
+        # The rate counters used for downsampling wait for the 4kHz
+        # marker before they start asserting.  To ensure that they
+        # start in synch, before starting them stop the 4kHz marker,
+        # start the counters, and then restart the 4kHz marker.  Then
+        # they will pick up together.
+        frm = caget('TPG:SMRF:1:FIXEDDIV')
+        frm[6] = 0
+        caput('TPG:SMRF:1:FIXEDDIV',frm)
+        
         # 2)  Restart
         for pv in self.restartPv:
             pv.put(1)
             pv.put(0)
+
+        # Restart the 4kHz marker
+        frm[6] = 120
+        caput('TPG:SMRF:1:FIXEDDIV',frm)        
 
         profile.append(('restart',time.time()))
 
