@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from tools.pattern import Pattern
 from tools.qt import *
 from tools.globals import *
+from tools.seq import FixedRateSync,ACRateSync
 #from tools.compress import compress, decompress
 import pyqtgraph as pg
 import numpy as np
@@ -101,13 +102,39 @@ class PatternWaveform(pg.GraphicsWindow):
         if q0 is not None:
             q1.setXLink(q0)
 
+        # Trigger plot
+        q2 = None
+        if self.pattern.trig is not None:
+            a = self.getItem(2,0)
+            if a is not None:
+                self.removeItem(a)
+
+            if key is not None:
+                q2 = self.addPlot(title=None,col=0,row=2)
+                q2.setLabel('left'  ,'Trigger' )
+                q2.setLabel('bottom','Bucket')
+                q2.showGrid(True,True)
+                x = []
+                y = []
+                trigs = self.pattern.trig[key]
+                for i,buckets in trigs.items():
+                    x.extend(buckets)
+                    y.extend([int(i)]*len(buckets))
+
+                ymax = np.amax(y,initial=0)
+                ymin = np.amin(y,initial=255)
+                plot(q2,x,y)
+                q2.setRange(yRange=[ymin-0.5,ymax+0.5])
+                if q0 is not None:
+                    q2.setXLink(q0)
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow, path):
         MainWindow.setObjectName("PatternBrowser")
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
-        
+
         layout = QtWidgets.QHBoxLayout()
         
         vb = QtWidgets.QVBoxLayout()
@@ -137,6 +164,10 @@ class Ui_MainWindow(object):
         self.ctrl_table = CtrlStatsTableQt(self.pattern)
         vb2.addWidget(self.ctrl_table)
 
+        #  Trigger Statistics table
+        self.trig_table = TrigStatsTableQt(self.pattern)
+        vb2.addWidget(self.trig_table)
+
         layout.addLayout(vb)
         layout.addWidget(self.pi)
         layout.addLayout(vb2)
@@ -149,6 +180,7 @@ class Ui_MainWindow(object):
         self.pattern.signal.changed.connect(self.allow_set_select.update)
         self.pattern.signal.changed.connect(self.ctrl_table.update)
         self.allow_set_select.allowseq_changed.connect(self.dest_table.update)
+        self.allow_set_select.allowseq_changed.connect(self.trig_table.update)
         self.allow_set_select.allowseq_changed.connect(self.pi.update)
         #  Initialize
         self.pattern_select.mode_select.setCurrentIndex(0)

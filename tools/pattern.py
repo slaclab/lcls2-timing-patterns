@@ -17,8 +17,8 @@ class Pattern(object):
         self.ctrl_stats = {}
         self.charge     = None
         self.allow_seq  = None   # { destination : { allow_class : max power class } }
-        self.destn       = json.load(open(path+'/destn.json','r'))
-        self.pcdef       = json.load(open(path+'/pcdef.json','r'))
+        self.destn      = json.load(open(path+'/destn.json','r'))
+        self.pcdef      = json.load(open(path+'/pcdef.json','r'))
         
 
     def _update(self):
@@ -59,6 +59,12 @@ class Pattern(object):
             self.dest       = None
         self.ctrl_stats = load_json('ctrl_stats')
         self.ctrl       = load_json('ctrl')
+        try:
+            self.trig_stats = load_json('trig_stats')
+            self.trig       = load_json('trig')
+        except:
+            self.trig_stats = None
+            self.trig       = None
         if self.charge:
             self._update()
 

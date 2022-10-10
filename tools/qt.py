@@ -345,3 +345,40 @@ class CtrlStatsTableQt(QtWidgets.QGroupBox):
                     irow += 1
 
         self.table.resizeColumnsToContents()
+
+
+class TrigStatsTableQt(QtWidgets.QGroupBox):
+    def __init__(self, pattern):
+        super(TrigStatsTableQt,self).__init__('Trigger Statistics')
+        self.pattern = pattern
+        v = QtWidgets.QVBoxLayout()
+        self.table = QtWidgets.QTableWidget()
+        v.addWidget(self.table)
+        self.setLayout(v)
+
+    def update(self,key):
+        if self.pattern.trig_stats is None:
+            return
+        stats = self.pattern.trig_stats[key]
+        tnames = []
+        for i,b in self.pattern.trig.items():
+            try:
+                if stats[i]['sum']>0:
+                    tnames.append(b['name'])
+            except:
+                pass
+
+        names  = ['sum','first','last','min','max']
+        self.table.setRowCount(len(tnames))
+        self.table.setVerticalHeaderLabels(tnames)
+        self.table.setHorizontalHeaderLabels(names)
+        self.table.setColumnCount(len(names))
+
+        irow = 0
+        for i,b in stats.items():
+            if b['sum']>0:
+                for col,n in enumerate(names):
+                    self.table.setItem(irow,col,QtWidgets.QTableWidgetItem(str(b[n])))
+                irow += 1
+
+        self.table.resizeColumnsToContents()
