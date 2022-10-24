@@ -237,7 +237,6 @@ class AlwUser:
         return state
 
 def main():
-    print('main')
     parser = argparse.ArgumentParser(description='sequence pva programming')
     parser.add_argument("seq", help="sequence script")
     parser.add_argument("pv" , help="sequence engine pv; e.g. XPM:0:SEQENG:0")
