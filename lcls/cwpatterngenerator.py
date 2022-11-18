@@ -34,6 +34,7 @@ def generate_pattern(p):
             beam_write(name=name,
                        instr=gen.instr, 
                        output=ppath+'d{}'.format(d),
+                       destn=b['destn'],
                        allow=destn[b['destn']]['allow'])
 
         #  Add required allow tables to pattern (or generate unique ones)
@@ -157,11 +158,11 @@ def main():
                  dump['destn'] = lcls.dumpBSY  # "DumpBSY"
                  p['beam'][lcls.dumpBSY] = dump
                  if b['rate']>1000:
-                   p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'100 Hz', 'destn':lcls.dumpBSY_keep}
+                   p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'100 Hz', 'destn':lcls.dumpBSY}
                  if b['rate']<=1000:
-                   p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'10 Hz', 'destn':lcls.dumpBSY_keep}
+                   p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'10 Hz', 'destn':lcls.dumpBSY}
                  if b['rate']<=10:
-                   p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY_keep}
+                   p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY}
 
             # Scheduling BPM Calibration bit:     
             if b['rate']<100:

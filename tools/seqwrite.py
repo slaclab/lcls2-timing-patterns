@@ -13,7 +13,7 @@ def seq_write_py(instr, output):
         f.write('{}\n'.format(i))
     f.close()
 
-def seq_write_json(name, output, start=None, allow=None, pcdef=None):
+def seq_write_json(name, output, start=None, destn=None, allow=None, pcdef=None):
     #  Read the python file for instructions
     fname = output+'.py'
     f = open(fname,'r')
@@ -37,6 +37,8 @@ def seq_write_json(name, output, start=None, allow=None, pcdef=None):
           'descset' :None,
           'encoding':encoding}
 
+    if destn is not None:
+        cc['destn'] = destn
     if allow is not None:
         cc['allow'] = allow
     if pcdef is not None:
@@ -46,12 +48,12 @@ def seq_write_json(name, output, start=None, allow=None, pcdef=None):
 
     open(output+'.json','w').write(json.dumps(cc))
 
-def seq_write(name, instr, output, start=None, allow=None, pcdef=None):
+def seq_write(name, instr, output, start=None, destn=None, allow=None, pcdef=None):
     seq_write_py  (instr, output)
-    seq_write_json(name, output, start, allow, pcdef)
+    seq_write_json(name, output, start, destn, allow, pcdef)
 
-def beam_write(name, instr, output, allow):
-    seq_write(name=name, instr=instr, output=output, allow=allow)
+def beam_write(name, instr, output, destn, allow):
+    seq_write(name=name, instr=instr, output=output, destn=destn, allow=allow)
 
 def ctrl_write(name, instr, output):
     seq_write(name=name, instr=instr, output=output)

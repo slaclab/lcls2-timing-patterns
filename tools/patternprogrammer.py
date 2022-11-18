@@ -129,9 +129,9 @@ class PatternProgrammer(object):
             fname = pattern+'/d{:}.json'.format(i)
             if os.path.exists(fname):
                 logging.debug(f'Loading [{fname}]')
-                (subseq,allow) = seq['eng'].loadfile(fname)
+                (subseq,allow,destn) = seq['eng'].loadfile(fname)
                 seq['eng'].require(allow) 
-                seq['eng'].destn  (i)
+                seq['eng'].destn  (i if destn is None else destn)
                 seq['load'] = [subseq,]
             else:
                 logging.debug(f'[{fname}] not found')
@@ -160,7 +160,8 @@ class PatternProgrammer(object):
 
         self.chargePv.put(self.charge)
         self.chargeEnPv.put(1)
-
+        self.destnPv.put(self.destn)
+        
         # 2)  Restart
         self.restartPv.put(1)
         self.restartPv.put(0)

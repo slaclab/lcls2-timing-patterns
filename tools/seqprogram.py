@@ -176,7 +176,7 @@ class SeqUser:
         self._idx = idx
         
         if 'allow' in config:
-            return (idx,config['allow'])
+            return (idx,config['allow'],config['destn'] if 'destn' in config else None)
 
         return (idx,)
 

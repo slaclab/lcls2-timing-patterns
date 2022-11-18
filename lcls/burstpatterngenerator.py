@@ -33,6 +33,7 @@ def generate_pattern(p):
             beam_write(name=name,
                        instr=gen.instr, 
                        output=ppath+'d{}'.format(d),
+                       destn=b['destn'],
                        allow=destn[b['destn']]['allow'])
 
         #  Add required allow tables to pattern (or generate unique ones)
