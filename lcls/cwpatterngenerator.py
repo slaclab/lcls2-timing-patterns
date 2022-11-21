@@ -146,7 +146,7 @@ def main():
             #    (2) request the same rate to the DumpBSY
             #    (3) request 1 Hz to the highest priority engine to the DumpBSY
 	    # Initializing all Exp Sequences (control seq) to 0Hz
-            p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (18)]
+            p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range(MAXCTL)]
             if i>lcls.dumpBSY:
                  if b['rate']>=10000:
                    p['beam'][i] = {'generator':'lookup', 'name':b['name'],'rate':b['rate'], 'destn':i}
@@ -165,7 +165,7 @@ def main():
                    p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY}
 
             # Scheduling BPM Calibration bit:     
-            if b['rate']<100:
+            if b['rate']<=100:
                p['ctrl'][1]={'seq':1, 'generator':'lookup', 'name':'{} Hz off {} Hz'.format(100-b['rate'],b['rate']), 'request':'ControlRequest(1)'}
             #BSA Control Bits
 #Diag0       

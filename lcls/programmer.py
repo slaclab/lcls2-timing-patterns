@@ -44,7 +44,7 @@ ac_rate_names = {'0Hz'   :'0 Hz',
               '90Hz' :'90 Hz',
               '110Hz' :'110 Hz',
               '119Hz':'119 Hz',
-              '120kHz':'120 Hz',}
+              '120Hz':'120 Hz',}
 
 #    Choose downstream most destination with rate
 def get_cw_dst(dst_list):
@@ -347,5 +347,5 @@ if __name__ == '__main__':
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    cProfile.run('main(args)')
+    #cProfile.run('main(args)')
     main(args)

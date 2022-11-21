@@ -99,6 +99,9 @@ def main():
         bursts.append( {'name':'100b_{}'.format(i), 'bunch_spacing':i, 'bunches_per_train':100} )
     for i in [2,5,10,20,50,100]:
         bursts.append( {'name':'{}b_9'.format(i), 'bunch_spacing':9, 'bunches_per_train':i} )
+    for i in [10,20,100,200]:
+        bursts.append( {'name':'{}b_2000'.format(i), 'bunch_spacing':2000, 'bunches_per_train':i} )
+
 
     #  Patterns list of dictionaries whose entries are:
     #    'name' : some descriptive identifier
@@ -115,7 +118,7 @@ def main():
             p = {}
             p['name'] = '{}.{}'.format(d['name'],b['name'])
             p['beam'] = {j:{'generator':'lookup', 'name':'0 Hz','rate':0, 'destn':j} for j in destn.keys()}  # initialize all destns to 0 Hz
-            p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (18)]
+            p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (MAXCTL)]
             
             #  Now, beam to the targeted destination
             p['beam'][i] = {'generator':'train','destn':i,
