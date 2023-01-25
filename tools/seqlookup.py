@@ -82,6 +82,12 @@ def seq_lookup(arg):
          '929 kHz'    :{'desc':'full rate on the mark',
                         'instr':['BeamRequest(0)','FixedRateSync("910kH",1)','Branch.unconditional(0)'],
                         'async_start':0},
+         '10 Hz off 3':{'desc':'Off 3',
+                        'instr':['FixedRateSync("910kH",3)', 'BeamRequest(0)', 'FixedRateSync("10H",1)','Branch.unconditional(0)'],
+                        'async_start':2},
+         '100 Hz off 3':{'desc':'Off 3',
+                        'instr':['FixedRateSync("910kH",3)', 'BeamRequest(0)', 'FixedRateSync("100H",1)','Branch.unconditional(0)'],
+                        'async_start':2},
          '1 Hz off'   :{'desc':'1 Hz delayed 5/10H',
                         'instr':['FixedRateSync("10H",5)','BeamRequest(0)','FixedRateSync("10H",5)','Branch.unconditional(0)',
                                  'FixedRateSync("1H",1)','Branch.unconditional(0)'],
@@ -212,6 +218,14 @@ def seq_lookup(arg):
          '100 Hz_skip2':{'desc':'100 Hz skip 2',
                          'instr':['FixedRateSync("100H",2)','BeamRequest(0)','FixedRateSync("100H",1)','Branch.conditional(1,0,97)','Branch.unconditional(0)',' FixedRateSync("1H",1)', 'Branch.unconditional(0)'], 
                         'async_start':5},
+#100Hz LINAC with 90Hz on a destination and 10Hz to another destination
+         '1/10/90 Hz' : {'desc':'1/10/90 Hz on control req bits 2/1/0',
+                          'instr':['FixedRateSync("100H",1)','ControlRequest(7)', # Not 10Hz fixed rate
+                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=2,counter=0,value=7)',  # fire 1Hz bit 
+                                   'FixedRateSync("100H",2)','ControlRequest(6)','Branch.conditional(line=2,counter=1,value=8)',  # fire 10 bits
+                                   'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=8,counter=0,value=8)',  # fire 100Hz bit
+                                   'FixedRateSync("1H",1)','Branch.unconditional(0)'],
+                          'async_start':11},
          '1/10/100 Hz' : {'desc':'1/10/100 Hz on control req bits 2/1/0',
                           'instr':['ControlRequest(7)', # fire 1/10/100Hz bits
                                    'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=1,counter=0,value=8)',  # fire 100Hz bit
