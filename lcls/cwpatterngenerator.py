@@ -165,8 +165,8 @@ def main():
                    p['beam'][lcls.dumpBSY_keep] = {'generator':'lookup', 'name':'1 Hz', 'destn':lcls.dumpBSY}
 
             # Scheduling BPM Calibration bit:     
-            if b['rate']<=100:
-               p['ctrl'][1]={'seq':1, 'generator':'lookup', 'name':'{} Hz off {} Hz'.format(100-b['rate'],b['rate']), 'request':'ControlRequest(1)'}
+            if b['rate']<200:
+               p['ctrl'][1]={'seq':1, 'generator':'lookup', 'name':'100 Hz off', 'request':'ControlRequest(1)'}
             #BSA Control Bits
 #Diag0       
             if ((i>=1) and (i<=5)):
