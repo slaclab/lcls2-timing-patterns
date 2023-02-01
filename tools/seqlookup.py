@@ -243,6 +243,42 @@ def seq_lookup(arg):
                        'instr':['ControlRequest(7)',
                                     'FixedRateSync("1H",1)','Branch.unconditional(0)'],
                            'async_start':1},
+#  BSA control for AC rates
+#  Soft
+         '1/10/120 Hz ACS' : {'desc':'1/10/120 Hz AC on control req bits 0/1/2',
+                          'instr':[f'ACRateSync({SoftTsm},"1H",1)','ControlRequest(7)', # fire 1/10/120Hz bits
+                                   f'ACRateSync({BothTsm},"60H",1)','ControlRequest(4)','Branch.conditional(line=2,counter=0,value=10)',  # fire 120Hz bit
+                                   f'ACRateSync({SoftTsm},"60H",1)','ControlRequest(6)','Branch.conditional(line=2,counter=1,value=8)',  # fire 10/120Hz bits
+                                   f'ACRateSync({BothTsm},"60H",1)','ControlRequest(4)','Branch.conditional(line=8,counter=0,value=10)',  # fire 120Hz bit
+                                   'Branch.unconditional(0)'],
+                          'async_start':0},
+         '1/10/10 Hz ACS' : {'desc':'1/10/10 Hz on control req bits 0/1/2',
+                         'instr':[f'ACRateSync({SoftTsm},"1H",1)','ControlRequest(7)', # fire 1/10/10Hz bits
+                                  f'ACRateSync({SoftTsm},"10H",1)','ControlRequest(6)','Branch.conditional(2,0,8)', # fire 10Hz bit
+                                  'Branch.unconditional(0)'],
+                           'async_start':0},
+         '1/1/1 Hz ACS' : {'desc':'1/1/1 Hz on control req bits 2/1/0',
+                       'instr':[f'ACRateSync({SoftTsm},"1H",1)','ControlRequest(7)',
+                                'Branch.unconditional(0)'],
+                           'async_start':0},
+#  Hard
+         '1/10/120 Hz ACH' : {'desc':'1/10/120 Hz AC on control req bits 0/1/2',
+                          'instr':[f'ACRateSync({HardTsm},"1H",1)','ControlRequest(7)', # fire 1/10/120Hz bits
+                                   f'ACRateSync({BothTsm},"60H",1)','ControlRequest(4)','Branch.conditional(line=2,counter=0,value=10)',  # fire 120Hz bit
+                                   f'ACRateSync({HardTsm},"60H",1)','ControlRequest(6)','Branch.conditional(line=2,counter=1,value=8)',  # fire 10/120Hz bits
+                                   f'ACRateSync({BothTsm},"60H",1)','ControlRequest(4)','Branch.conditional(line=8,counter=0,value=10)',  # fire 120Hz bit
+                                   'Branch.unconditional(0)'],
+                          'async_start':0},
+         '1/10/10 Hz ACH' : {'desc':'1/10/10 Hz on control req bits 0/1/2',
+                         'instr':[f'ACRateSync({HardTsm},"1H",1)','ControlRequest(7)', # fire 1/10/10Hz bits
+                                  f'ACRateSync({HardTsm},"10H",1)','ControlRequest(6)','Branch.conditional(2,0,8)', # fire 10Hz bit
+                                  'Branch.unconditional(0)'],
+                           'async_start':0},
+         '1/1/1 Hz ACH' : {'desc':'1/1/1 Hz on control req bits 2/1/0',
+                       'instr':[f'ACRateSync({HardTsm},"1H",1)','ControlRequest(7)',
+                                'Branch.unconditional(0)'],
+                           'async_start':0},
+#
          '30 Hz SimAC' : {'desc':'30 Hz power align emulation',
                           'instr':['BeamRequest(0)','FixedRateSync("70kH",583)',
                                    'FixedRateSync("70kH",583)',

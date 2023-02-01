@@ -96,6 +96,9 @@ class ACRateSync(Instruction):
         if mask == 0:
             raise ValueError('ACRateSync called with timeslotmask={} {}'.format(mask,self.args))
 
+        if engine.frame < acStart:
+            engine.frame = acStart-1
+
         intv = self.ACIntvsDict[self.mk]['intv']
         for i in range(self.args[3]):  # number of occurrences
             engine.frame += 1  # always wait at least 1 frame

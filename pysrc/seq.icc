@@ -73,6 +73,9 @@ public:
       throw(std::string("ACRateSync called with timeslotmask==0"));
     }
 
+    if (engine.frame < acStart)
+      engine.frame = acStart-1;
+    
     unsigned intv = _acIntv[_marker];
     for(unsigned i=0; i<_occ; i++) {
       engine.frame++;
