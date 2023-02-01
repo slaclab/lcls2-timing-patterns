@@ -22,6 +22,7 @@ class Pattern(object):
         
 
     def _update(self):
+        print('Pattern _update')
         if self.dest_stats is None:
             return
         #  Update beam class calculations
@@ -69,6 +70,7 @@ class Pattern(object):
             self._update()
 
     def chargeUpdate(self, charge):
+        print('pattern chargeUpdate')
         self.charge = charge
         if self.path:
             self._update()

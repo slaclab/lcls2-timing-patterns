@@ -324,6 +324,7 @@ static PyObject* beamseq_power  (PyObject* self_o, PyObject* args, PyObject* kwd
   int slast  = -1;  
   int gframe = -1;
   while (gframe < done) {
+
     Engine&   engine = request_engine;
     int       frame  = engine.frame;
     unsigned request = engine.request;

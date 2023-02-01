@@ -219,7 +219,7 @@ def seq_lookup(arg):
                          'instr':['FixedRateSync("100H",2)','BeamRequest(0)','FixedRateSync("100H",1)','Branch.conditional(1,0,97)','Branch.unconditional(0)',' FixedRateSync("1H",1)', 'Branch.unconditional(0)'], 
                         'async_start':5},
 #100Hz LINAC with 90Hz on a destination and 10Hz to another destination
-         '1/10/90 Hz' : {'desc':'1/10/90 Hz on control req bits 2/1/0',
+         '1/10/90 Hz' : {'desc':'1/10/90 Hz on control req bits 0/1/2',
                           'instr':['FixedRateSync("100H",1)','ControlRequest(7)', # Not 10Hz fixed rate
                                    'FixedRateSync("100H",1)','ControlRequest(4)','Branch.conditional(line=2,counter=0,value=7)',  # fire 1Hz bit 
                                    'FixedRateSync("100H",2)','ControlRequest(6)','Branch.conditional(line=2,counter=1,value=8)',  # fire 10 bits

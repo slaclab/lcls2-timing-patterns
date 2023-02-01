@@ -3,7 +3,7 @@ from tools.seq       import *
 
 import json
 
-def seq_write_py(instr, output):
+def seq_write_py(instr, output, codes=None):
     #  Write the python file for direct programming
     fname = output+'.py'
     f = open(fname,'w')
@@ -11,13 +11,18 @@ def seq_write_py(instr, output):
     f.write('\n')
     for i in instr:
         f.write('{}\n'.format(i))
+    if codes is not None:
+        f.write('codes = {')
+        for k,v in codes:
+            f.write(f'{k}:{v},')
+        f.write('}\n')
     f.close()
 
-def seq_write_json(name, output, start=None, destn=None, allow=None, pcdef=None):
+def seq_write_json(name, output, start=None, destn=None, allow=None, pcdef=None, mode='CW'):
     #  Read the python file for instructions
     fname = output+'.py'
     f = open(fname,'r')
-    config = {'title':name, 'descset':None, 'instrset':None, 'pcQmax':None, 'crc':None }
+    config = {'title':name, 'descset':None, 'instrset':None, 'pcQmax':None, 'crc':None, 'codes':None }
     exec(compile(f.read(), fname, 'exec'), {}, config)
     f.close()
 
@@ -35,28 +40,29 @@ def seq_write_json(name, output, start=None, destn=None, allow=None, pcdef=None)
     #  Populate a new dictionary with only the fields we want
     cc = {'title'   :name,
           'descset' :None,
-          'encoding':encoding}
+          'encoding':encoding,
+          'codes'   :config['codes']}
 
     if destn is not None:
         cc['destn'] = destn
     if allow is not None:
         cc['allow'] = allow
     if pcdef is not None:
-        cc['maxQ'] = allowsim(config['instrset'], encoding, pcdef)
+        cc['maxQ'] = allowsim(config['instrset'], encoding, pcdef, mode=mode)
         if start is not None:
             cc['start'] = start
-
+            
     open(output+'.json','w').write(json.dumps(cc))
 
-def seq_write(name, instr, output, start=None, destn=None, allow=None, pcdef=None):
-    seq_write_py  (instr, output)
-    seq_write_json(name, output, start, destn, allow, pcdef)
+def seq_write(name, instr, output, start=None, destn=None, allow=None, pcdef=None, codes=None, mode='CW'):
+    seq_write_py  (instr, output, codes)
+    seq_write_json(name, output, start, destn, allow, pcdef, mode=mode)
 
-def beam_write(name, instr, output, destn, allow):
-    seq_write(name=name, instr=instr, output=output, destn=destn, allow=allow)
+def beam_write(name, instr, output, destn, allow, mode='CW'):
+    seq_write(name=name, instr=instr, output=output, destn=destn, allow=allow, mode=mode)
 
-def ctrl_write(name, instr, output):
-    seq_write(name=name, instr=instr, output=output)
+def ctrl_write(name, instr, output, codes=None):
+    seq_write(name=name, instr=instr, output=output, codes=codes)
 
-def allow_write(name, instr, start, pcdef, output):
-    seq_write(name=name, instr=instr, start=start, pcdef=pcdef, output=output)
+def allow_write(name, instr, start, pcdef, output, mode='CW'):
+    seq_write(name=name, instr=instr, start=start, pcdef=pcdef, output=output, mode=mode)

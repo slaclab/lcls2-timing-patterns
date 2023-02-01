@@ -56,7 +56,8 @@ def generate_pattern(p):
             (name,gen) = generator(b)
             ctrl_write(name=name,
                        instr=gen.instr,
-                       output=ppath+'c{}'.format(b['seq']))
+                       output=ppath+'c{}'.format(b['seq']),
+                       codes=b['codes'])
 
     if args.control_only:
         #  Simulate the control requests
@@ -91,7 +92,7 @@ def main():
     #  Patterns list of dictionaries whose entries are:
     #    'name' : some descriptive identifier
     #    'beam' : list of generators with destination #
-    #    'ctrl' : list of generators with sequence #
+    #    'ctrl' : list of generators with sequence #, codes
     #    'aseq' : list of generators for allow sequences
     patterns = []
 
@@ -128,9 +129,9 @@ def main():
         #    (2) request the same rate to the DumpBSY
         #    (3) request 1 Hz to the highest priority engine to the DumpBSY
         # Initializing all Exp Sequences (control seq) to 0Hz
-        p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)'} for i in range (18)]
+        p['ctrl'] = [{'seq':i, 'generator':'lookup', 'name':'0 Hz', 'request':'ControlRequest(1)', 'codes':{j:'None' for j in range(4)}} for i in range (18)]
         if b['rate']>=10000:
-            p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':b['name'], 'request':'ControlRequest(2)'}
+            p['ctrl'][0]={'seq':0, 'generator':'lookup', 'name':b['name'], 'request':'ControlRequest(2)', 'codes':{0:'KeepAlive'}}
         if b['rate']>1000:
             #  Choose to shift BSY_keep by 28 buckets to not disturb diagnostics
             p['beam'][lcls.dumpBSY_keep] = {'generator':'periodic', 'name':'100 Hz', 'destn':lcls.dumpBSY_keep, 'charge':0, 'period':9100,'start_bucket':9072}
@@ -140,22 +141,24 @@ def main():
         #BSA Control Bits
 #Diag0       
         for i in [2,4]:
+            def codeset(rates):
+                return {j:f'{dest[i]} {r}Hz' for j,r in enumerate(rates)}
 #1Hz
             if b['rate']>=1:
-                p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/1/1 Hz'}
+                p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/1/1 Hz', 'codes':codeset([1,1,1])}
 #10Hz
             if b['rate']>=10:
-              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/10/10 Hz'}
+              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/10/10 Hz', 'codes':codeset([1,10,10])}
 #100Hz
             if b['rate']>=100:
-              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/10/100 Hz'}
+              p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/10/100 Hz', 'codes':codeset([1,10,100])}
 
             if args.control_only:
                 del p['aseq']
                 del p['beam']
 
         #  Add experiment sequences to ctrl[17]
-        p['ctrl'][17] = {'seq':17, 'generator':'periodic' , 'name':'1/100 Hz', 'charge':None, 'period':[910000,9100], 'start_bucket':[0,0] }
+        p['ctrl'][17] = {'seq':17, 'generator':'periodic' , 'name':'1/100 Hz', 'charge':None, 'period':[910000,9100], 'start_bucket':[0,0], 'codes':{0:'1Hz',1:'100Hz'} }
 
         patterns.append(p)
         

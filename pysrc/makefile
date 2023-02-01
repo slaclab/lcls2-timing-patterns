@@ -13,7 +13,6 @@ INCLUDE_DIRS += /afs/slac/g/lcls/package/anaconda/envs/python3_env/include/pytho
 pyseqsim_SRCS = pyseqsim.cc
 SHARED_LIBRARIES+=pyseqsim
 LIBRARY_LINKS = $(SHARED_LIBRARIES:%=%.so)
-
 TGTS += $(LIBRARY_LINKS)
 
 $(LIBRARY_LINKS): $(SHARED_LIBRARIES:%=lib%.so)
