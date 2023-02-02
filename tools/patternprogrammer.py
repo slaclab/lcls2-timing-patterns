@@ -86,7 +86,7 @@ class PatternProgrammer(object):
             lsta = 0
             iseq = 0
             for j in range(NALWSEQ):
-                if pc[iseq]==j:
+                while (pc[iseq]==j):
                     lseq = newseq[iseq]
                     lpc  = pc    [iseq]
                     lsta = start [iseq]
@@ -160,7 +160,7 @@ class PatternProgrammer(object):
 
         self.chargePv.put(self.charge)
         self.chargeEnPv.put(1)
-        self.destnPv.put(self.destn)
+#        self.destnPv.put(self.destn)
         
         # 2)  Restart
         self.restartPv.put(1)
