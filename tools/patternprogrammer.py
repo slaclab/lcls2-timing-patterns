@@ -61,9 +61,9 @@ class PatternProgrammer(object):
             # clean up what was previously loaded but not applied
             seq['eng'].remove(seq['load'])
 
-            newseq = {}
-            start  = {}
-            pc     = {}
+            newseq = {0:0}
+            start  = {0:0}
+            pc     = {0:0}
             #  Default to sequence 0 for all power classes.
             beamclass = { j:0 for j in range(NALWSEQ) }
             #  Loop over all allow sequences
@@ -100,7 +100,7 @@ class PatternProgrammer(object):
                 #  Assign the subsequence number and power class
 #                self.allowTbl[i].seq(j,lpc,lseq,lsta)
                 s = beamclass[j]
-                self.allowTbl[i].seq(j,pc[s],s,start[s])
+                self.allowTbl[i].seq(j,pc[s],newseq[s],start[s])
             seq['eng'].schedule(0,sync)
             seq['load'] = newseq.values()
 
