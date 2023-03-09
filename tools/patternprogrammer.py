@@ -83,7 +83,7 @@ class PatternProgrammer(object):
                         beamclass[c] = j
                 else:
                     logging.debug(f'[{fname}] not found')
-                    pc    [j] = -1
+                    pc    [j] = 0
                     break
 
             #  Fill allow table
@@ -92,13 +92,7 @@ class PatternProgrammer(object):
             lsta = 0
             iseq = 0
             for j in range(NALWSEQ):
-#                while (pc[iseq]==j):
-#                    lseq = newseq[iseq]
-#                    lpc  = pc    [iseq]
-#                    lsta = start [iseq]
-#                    iseq += 1
                 #  Assign the subsequence number and power class
-#                self.allowTbl[i].seq(j,lpc,lseq,lsta)
                 s = beamclass[j]
                 self.allowTbl[i].seq(j,pc[s],newseq[s],start[s])
             seq['eng'].schedule(0,sync)
