@@ -1,4 +1,5 @@
 from tools.seq import FixedRateSync,ACRateSync
+from tools.globals import *
 import numpy as np
 import json
 
@@ -46,7 +47,7 @@ def add_triggers(path,q=None):
             elif trig['marker']['type']=='ac':
                 xmark = [j for j in range(0,910000,1166*13*ACRateSync.ACIntvsDict[index]['intv'])]
             elif trig['marker']['type']=='ctrl':
-                xmark = ctrl[str(index//16)][str(index&0xf)]
+                xmark = ctrl[str(index//CTLBITS)][str(index&(CTLBITS-1))]
 
             if trig['destn']['type']=='DC':
                 xi = xmark

@@ -247,7 +247,9 @@ def main():
     config = {'title':'TITLE', 'descset':None, 'instrset':None}
     print('config {}'.format(config))
 #
-    exec(compile(open(args.seq).read(), args.seq, 'exec'), {}, config)
+    seq = 'from tools.seq import *\n'
+    seq += open(args.seq).read()
+    exec(compile(seq, args.seq, 'exec'), {}, config)
 #
     seq = SeqUser(args.pv)
     seq.execute(config['title'],config['instrset'],config['descset'])

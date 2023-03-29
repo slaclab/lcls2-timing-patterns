@@ -131,7 +131,7 @@ class Branch(Instruction):
     def _word(self, a):
         w = a & 0x7ff
         if len(self.args)>2:
-            w = ((self.args[2]&0x3)<<27) | (1<<24) | ((self.args[3]&0xff)<<16) | w
+            w = ((self.args[2]&0x3)<<27) | (1<<24) | ((self.args[3]&0xfff)<<12) | w
         return int(w)
 
     @classmethod
@@ -208,7 +208,13 @@ class ControlRequest(Instruction):
     opcode = 5
     
     def __init__(self, word):
-        super(ControlRequest, self).__init__((self.opcode, word))
+        if isinstance(word,list):
+            v = 0
+            for w in word:
+                v |= (1<<w)
+        else:
+            v = word
+        super(ControlRequest, self).__init__((self.opcode, v))
  
     def _word(self):
         return int((4<<29) | self.args[1])

@@ -9,4 +9,5 @@ MAXCTL = 72
 #  frames per second
 TPGSEC = 910000
 #  bits per control sequence engine
-CTLBITS = 16
+#CTLBITS = 16
+CTLBITS = 4

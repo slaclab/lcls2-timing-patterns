@@ -8,7 +8,9 @@ def tojson(fname):
           'descset' :None, 
           'instrset':None, 
           'crc'     :None}
-    exec(compile(open(fname).read(), fname, 'exec'), {}, cc)
+    seq = 'from tools.seq import *\n'
+    seq += open(fname).read()
+    exec(compile(seq, fname, 'exec'), {}, cc)
     encoding = [len(cc['instrset'])]
     for instr in cc['instrset']:
         encoding = encoding + instr.encoding()

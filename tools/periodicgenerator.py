@@ -86,10 +86,12 @@ class PeriodicGenerator(object):
         bunion = sorted(reduce(myunion,bkts))  # set of buckets with a request
         reqs   = []  # list of request values for those buckets
         for b in bunion:
-            req = 0
+#            req = 0
+            req = []
             for i,bs in enumerate(bkts):
                 if b in bs:
-                    req |= (1<<i)
+#                    req |= (1<<i)
+                    req.append(i)
             reqs.append(req)
 
         blist  = [0] + list(bunion)

@@ -1,6 +1,6 @@
 import argparse
 import os
-from .globals import *
+from tools.globals import *
 
 #
 #  Arguments are:
@@ -10,13 +10,13 @@ from .globals import *
 #     trains_per_second : number of trains within the pattern
 #     train_spacing     : buckets from last bunch of previous train to
 #                         first bunch of the next train
-#     repeat            : repeat pattern or run only once
+#     repeat            : # of times to repeat (-1 = indefinite)
 #
 class TrainGenerator(object):
     def __init__(self, start_bucket=0, 
                  train_spacing=TPGSEC, trains_per_second=1, 
                  bunch_spacing=1, bunches_per_train=1, 
-                 charge=0, repeat=False):
+                 charge=0, repeat=0):
         self.start_bucket      = start_bucket
         self.train_spacing     = train_spacing
         self.trains_per_second = trains_per_second
@@ -144,13 +144,19 @@ class TrainGenerator(object):
             self.instr.append('# end loop C')
             nint = nint - rint*256*256
 
-        if self.repeat:
-            #  Unconditional branch (opcode 2) to instruction 0 (1Hz sync)
-            self.instr.append('instrset.append( Branch.unconditional(0) )')
-        else:
+        if self.repeat==0:
             #  Unconditional branch to here
             self.instr.append('last = len(instrset)')
             self.instr.append('instrset.append( Branch.unconditional(last) )')
+        elif self.repeat<0:
+            #  Unconditional branch (opcode 2) to instruction 0 (1Hz sync)
+            self.instr.append('instrset.append( FixedRateSync(marker="1H",occ=1) )')
+            self.instr.append('instrset.append( Branch.unconditional(0) )')
+        else:
+            #  Conditional branch (opcode 2) to instruction 0 (1Hz sync)
+            self.instr.append('instrset.append( FixedRateSync(marker="1H",occ=1) )')
+            self.instr.append('instrset.append( Branch.conditional(0, 3, {}) )'.format(self.repeat-1))
+            
 
 
 def main():
@@ -162,9 +168,18 @@ def main():
     parser.add_argument("-n", "--bunches_per_train" , required=True , type=int, help="number of bunches in each _train")
     parser.add_argument("-s", "--start_bucket"      , default=0     , type=int, help="starting bucket for first _train")
     parser.add_argument("-q", "--charge"            , default=0     , type=int, help="bunch charge, pC")
-    parser.add_argument("-r", "--repeat"            , default=False , help="repeat sequence each second")
+    parser.add_argument("-r", "--repeat"            , default=0     , type=int, help="number of times to repeat")
     args = parser.parse_args()
-    TrainGenerator(args)
+
+    print('# traingenerator args {}'.format(args))
+    gen = TrainGenerator(args.start_bucket, args.train_spacing, args.trains_per_second,
+                         args.bunch_spacing, args.bunches_per_train, args.charge, args.repeat)
+    if (len(gen.instr) > 1000):
+        sys.stderr.write('*** Sequence has {} instructions.  May be too large to load. ***\n'.format(gen.ninstr))
+    print('# {} instructions'.format(len(gen.instr)))
+    print('')
+    for i in gen.instr:
+        print('{}'.format(i))
 
 if __name__ == '__main__':
     main()
