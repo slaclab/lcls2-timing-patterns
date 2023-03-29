@@ -10,6 +10,7 @@
 
 #define MyArg_ParseTupleAndKeywords(args,kwds,fmt,kwlist,...) PyArg_ParseTupleAndKeywords(args,kwds,fmt,const_cast<char**>(kwlist),__VA_ARGS__)
 
+#include "globals.hh"
 #include "beamseq.icc"
 #include "controlseq.icc"
 

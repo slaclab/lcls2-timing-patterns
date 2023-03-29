@@ -419,7 +419,11 @@ def controlsim(pattern, start=0, stop=TPGSEC, mode='CW'):
         if not os.path.exists(fname):
             logging.warning(f'No programming for control sequence {i}')
         else:
-            exec(compile(open(fname).read(), fname, 'exec'), {}, config)
+
+            seq = 'from tools.seq import *\n'
+            seq += open(fname).read()
+            exec(compile(seq, fname, 'exec'), {}, config)
+
             seqdict['request'][i] = config['instrset']
 
             fname = pattern+'/c{}.json'.format(i)
@@ -489,7 +493,9 @@ def seqsim(pattern, start=0, stop=TPGSEC, mode='CW', destn_list=[], pc_list=[], 
             fname = pattern+'/d{}.py'.format(b)
             if os.path.exists(fname):
                 config = {'title':'TITLE', 'descset':None, 'instrset':None}
-                exec(compile(open(fname).read(), fname, 'exec'), {}, config)
+                seq = 'from tools.seq import *\n'
+                seq += open(fname).read()
+                exec(compile(seq, fname, 'exec'), {}, config)
                 seqdict['request'][b] = config['instrset']
                 seqdict['allowmask'][b] = bitmask(destn[b]['allow'])
             else:
@@ -505,7 +511,9 @@ def seqsim(pattern, start=0, stop=TPGSEC, mode='CW', destn_list=[], pc_list=[], 
             fname = pattern+'/allow_d{:}_{:}.py'.format(a,allowSet[i])
             if os.path.exists(fname):
                 config = {'title':'TITLE', 'descset':None, 'instrset':None}
-                exec(compile(open(fname).read(), fname, 'exec'), {}, config)
+                seq = 'from tools.seq import *\n'
+                seq += open(fname).read()
+                exec(compile(seq, fname, 'exec'), {}, config)
                 seqdict['allow']    [a] = config['instrset']
             else:
                 raise RuntimeError('Pattern depends upon allow sequence - not found {}'.format(fname))
