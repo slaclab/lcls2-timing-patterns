@@ -35,6 +35,10 @@ public:
     if (v) _csr.setBit(0);
     else   _csr.clearBit(0);
   }
+  void setOverride(bool v) {
+    if (v) _csr.setBit(30);
+    else   _csr.clearBit(30);
+  }
   void setStrobe() { _csr.setBit(31); }
   void setTag   (unsigned t) { 
     unsigned v = _tag_ts;
@@ -52,7 +56,8 @@ public:
   }
   void process(unsigned dst,
                unsigned pc,
-               bool     latch_tag)
+               bool     latch_tag,
+               bool     bypass=true)
   {
     if (dst >= 0)
       setClass(dst,pc);
@@ -60,8 +65,12 @@ public:
     setTag  (latch_tag);
     setLatch(latch_tag != 0);
 
-    if (latch_tag || (dst>=0))
+    if (latch_tag || (dst>=0)) {
+      setOverride(true);
       setStrobe();
+    }
+
+    setOverride(bypass);
 
     if (verbose)
       printf("process done\n");
@@ -109,6 +118,7 @@ void usage(const char* p) {
   printf("         -p <tcp port>                  : Open a TCP port for receiving MPS changes\n");
   printf("         -C <dst,class>                 : Set MPS dest to power class\n");
   printf("         -L <tag>                       : Latch with tag\n");
+  printf("         -X                             : Remove bypass\n");
   printf("         -v                             : set verbose\n");
 }
 
@@ -122,11 +132,12 @@ int main(int argc, char** argv) {
   int      port=-1;
   unsigned pc=0;
   int      dst=-1;
+  bool     bypass = true;
 
   opterr = 0;
 
   char opts[32];
-  sprintf(opts,"a:C:L:p:hv");
+  sprintf(opts,"a:C:L:p:hvX");
 
   int c;
   while( (c=getopt(argc,argv,opts))!=-1 ) {
@@ -143,6 +154,9 @@ int main(int argc, char** argv) {
       break;
     case 'L':
       latch_tag = strtoul(optarg,NULL,0);
+      break;
+    case 'X':
+      bypass = false;
       break;
     case 'v':
       verbose = true;
@@ -215,7 +229,7 @@ int main(int argc, char** argv) {
     }
   }
   else {
-    p->process(dst,pc,latch_tag);
+    p->process(dst,pc,latch_tag,bypass);
 
     unsigned latch, tag, timestamp;
     unsigned pclass[16];
