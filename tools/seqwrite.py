@@ -7,14 +7,14 @@ def seq_write_py(instr, output, codes=None):
     #  Write the python file for direct programming
     fname = output+'.py'
     f = open(fname,'w')
-    f.write('from tools.seq import *\n')
-    f.write('\n')
+#    f.write('from tools.seq import *\n')
+#    f.write('\n')
     for i in instr:
         f.write('{}\n'.format(i))
     if codes is not None:
         f.write('codes = {')
-        for k,v in codes:
-            f.write(f'{k}:{v},')
+        for k,v in codes.items():
+            f.write(f'{k}:\'{v}\',')
         f.write('}\n')
     f.close()
 
@@ -23,7 +23,9 @@ def seq_write_json(name, output, start=None, destn=None, allow=None, pcdef=None,
     fname = output+'.py'
     f = open(fname,'r')
     config = {'title':name, 'descset':None, 'instrset':None, 'pcQmax':None, 'crc':None, 'codes':None }
-    exec(compile(f.read(), fname, 'exec'), {}, config)
+    seq = 'from tools.seq import *\n'
+    seq += f.read()
+    exec(compile(seq, fname, 'exec'), {}, config)
     f.close()
 
     if pcdef is not None and start is None:

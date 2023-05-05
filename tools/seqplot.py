@@ -130,7 +130,9 @@ def main():
 
     config = {'title':'TITLE', 'descset':None, 'instrset':None}
 
-    exec(compile(open(args.seq).read(), args.seq, 'exec'), {}, config)
+    seq = 'from tools.seq import *\n'
+    seq += open(args.seq).read()
+    exec(compile(seq, args.seq, 'exec'), {}, config)
 
     seqtest = SeqUser(start=args.start,stop=args.stop,acmode=(args.mode=='AC'))
     seqtest.execute(config['title'],config['instrset'],config['descset'])

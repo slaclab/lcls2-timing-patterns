@@ -140,8 +140,8 @@ PyObject* controlseq_execute(PyObject* self_o, PyObject* args, PyObject* kwds)
     unsigned j    = PyLong_AsLong(key);
     request_engines[j] = Engine(self.acmode);
     request_instr  [j] = Instruction::create(PyDict_GetItem(req,key));
-    for(unsigned k=0; k<16; k++) {
-      unsigned z = j*16+k;
+    for(unsigned k=0; k<CTLBITS; k++) {
+      unsigned z = j*CTLBITS+k;
       stats          [z] = defstats;
       xdata          [z] = std::vector<unsigned>(0);
       slast          [z] = -1;
@@ -163,8 +163,8 @@ PyObject* controlseq_execute(PyObject* self_o, PyObject* args, PyObject* kwds)
         instrset[engine.instr]->execute(engine);
 
         if (int(engine.frame) != frame) {
-          for(unsigned j=0; j<16; j++) {
-            unsigned z=16*i+j;
+          for(unsigned j=0; j<CTLBITS; j++) {
+            unsigned z=CTLBITS*i+j;
             if (request&(1<<j)) {
               stats[z].sum++;
               if (stats[z].last>=0) {
@@ -197,12 +197,12 @@ PyObject* controlseq_execute(PyObject* self_o, PyObject* args, PyObject* kwds)
   char tmp[8];
 
   PyObject* pxdata = PyDict_New();
-  for(unsigned i=0; i<18; i++) {
-    if (xdata.find(i*16)==xdata.end())
+  for(unsigned i=0; i<MAXCTL; i++) {
+    if (xdata.find(i*CTLBITS)==xdata.end())
       continue;
     PyObject* d = PyDict_New();
-    for(unsigned j=0; j<16; j++) {
-      unsigned z=16*i+j;
+    for(unsigned j=0; j<CTLBITS; j++) {
+      unsigned z=CTLBITS*i+j;
       PyObject* o = PyList_New(xdata[z].size());
       for(unsigned k=0; k<xdata[z].size(); k++)
         PyList_SET_ITEM(o,k,PyLong_FromLong(xdata[z][k]));
@@ -215,12 +215,12 @@ PyObject* controlseq_execute(PyObject* self_o, PyObject* args, PyObject* kwds)
 
 
   PyObject* pstats = PyDict_New();
-  for(unsigned i=0; i<18; i++) {
-    if (stats.find(i*16)==stats.end())
+  for(unsigned i=0; i<MAXCTL; i++) {
+    if (stats.find(i*CTLBITS)==stats.end())
       continue;
     PyObject* d = PyDict_New();
-    for(unsigned j=0; j<16; j++) {
-      unsigned z=16*i+j;
+    for(unsigned j=0; j<CTLBITS; j++) {
+      unsigned z=CTLBITS*i+j;
       PyObject* o = PyDict_New();
       PyDict_SetItemString(o,"sum"  ,PyLong_FromLong(stats[z].sum));
       PyDict_SetItemString(o,"min"  ,PyLong_FromLong(stats[z].min));

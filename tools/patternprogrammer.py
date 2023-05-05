@@ -61,9 +61,11 @@ class PatternProgrammer(object):
             # clean up what was previously loaded but not applied
             seq['eng'].remove(seq['load'])
 
-            newseq = {}
-            start  = {}
-            pc     = {}
+            newseq = {0:0}
+            start  = {0:0}
+            pc     = {0:0}
+            #  Default to sequence 0 for all power classes.
+            beamclass = { j:0 for j in range(NALWSEQ) }
             #  Loop over all allow sequences
             for j in range(NALWSEQ):
                 #  Load the sequence from the pattern directory, if it exists
@@ -75,9 +77,13 @@ class PatternProgrammer(object):
                     newseq[j] = seq['eng'].loadfile(fname)[0]
                     start [j] = config['start']
                     pc    [j] = power_class(config,charge)
+                    #  overwrite sequence for this powerclass with latest that
+                    #  satisfies it.  Assumes later has higher rate.
+                    for c in range(NALWSEQ-1,pc[j]-1,-1):
+                        beamclass[c] = j
                 else:
                     logging.debug(f'[{fname}] not found')
-                    pc    [j] = -1
+                    pc    [j] = 0
                     break
 
             #  Fill allow table
@@ -86,13 +92,9 @@ class PatternProgrammer(object):
             lsta = 0
             iseq = 0
             for j in range(NALWSEQ):
-                while (pc[iseq]==j):
-                    lseq = newseq[iseq]
-                    lpc  = pc    [iseq]
-                    lsta = start [iseq]
-                    iseq += 1
                 #  Assign the subsequence number and power class
-                self.allowTbl[i].seq(j,lpc,lseq,lsta)
+                s = beamclass[j]
+                self.allowTbl[i].seq(j,pc[s],newseq[s],start[s])
             seq['eng'].schedule(0,sync)
             seq['load'] = newseq.values()
 
