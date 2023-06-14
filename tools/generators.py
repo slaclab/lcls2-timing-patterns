@@ -12,7 +12,8 @@ def generator(arg):
         return ('{}'.format(arg['name']),gen(**{'instr':seq['instr'],'async_start':seq['async_start']}))
 
     if arg['generator']=='train':
-        arg['train_spacing']     = TPGSEC
+        if not 'train_spacing' in arg:
+            arg['train_spacing']     = TPGSEC
         arg['trains_per_second'] = 1
 
         span = (arg['train_spacing']*(1-arg['trains_per_second']) +
@@ -24,11 +25,18 @@ def generator(arg):
             print('  may be necessary.')
             raise RuntimeError('Generator error')
 
+        if 'rrepeat' not in arg:
+            arg['rrepeat'] = False
+            arg['rpad'] = None
+
         gen = TrainGenerator(charge            = arg['charge'],
+                             train_spacing     = arg['train_spacing'],
                              start_bucket      = arg['start_bucket'],
                              bunch_spacing     = arg['bunch_spacing'],
                              bunches_per_train = arg['bunches_per_train'],
-                             repeat            = arg['repeat'])
+                             repeat            = arg['repeat'],
+                             rrepeat           = arg['rrepeat'],
+                             rpad              = arg['rpad'])
 
         return ('train (start={}, bunch_spacing={}, bunches_per_train={}, train_spacing={}, trains_per_second={})'
                 .format(arg['start_bucket'],arg['bunch_spacing'],arg['bunches_per_train'],
@@ -36,7 +44,7 @@ def generator(arg):
                 gen )
     
     if arg['generator']=='periodic':
-        gen=PeriodicGenerator(arg['period'],arg['start_bucket'])
+        gen=PeriodicGenerator(period=arg['period'],start=arg['start_bucket'],charge=arg['charge'],repeat=arg['repeat'])
         name='periodic (period={}, start={})'.format(arg['period'],arg['start_bucket'])
         return (name,gen)
 
