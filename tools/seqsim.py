@@ -203,7 +203,7 @@ class SeqUser:
             request_engines[i] = Engine(self.acmode)
             self.stats[i] = {}
             self.xdata[i] = {}
-            for j in range(MAXDST):
+            for j in range(CTLBITS):
                 self.stats[i][j] = {'sum':0,'min':-1,'max':-1,'first':-1,'last':-1} 
                 self.xdata[i][j] = []
             slast[i] = {}
@@ -233,7 +233,7 @@ class SeqUser:
                         logging.debug('\tframe: {}  instr {}  request {:x}'.format
                                       (frame,engine.instr,request))
                             
-                        for j in range(MAXDST):
+                        for j in range(CTLBITS):
                             if (request & (1<<j)) != 0:
                                 self.stats[i][j]['sum'] += 1
                                 if self.stats[i][j]['last']>=0:
