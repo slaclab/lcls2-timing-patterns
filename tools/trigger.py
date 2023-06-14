@@ -3,7 +3,7 @@ from tools.globals import *
 import numpy as np
 import json
 
-def add_triggers(path,q=None):
+def add_triggers(path,q=None,start=0,stop=TPGSEC):
 
     #  Define the triggers
     p = {'0' :{'name':'Diag01H'  , 'marker':{'type':'ctrl', 'index': 64}, 'destn':{'type':'INCL','mask':[1]}},
@@ -43,9 +43,9 @@ def add_triggers(path,q=None):
         for i,trig in p.items():
             index = trig['marker']['index']
             if trig['marker']['type']=='fixed':
-                xmark = [j for j in range(0,910000,FixedRateSync.FixedIntvsDict[index]['intv'])]
+                xmark = [j for j in range(start,stop,FixedRateSync.FixedIntvsDict[index]['intv'])]
             elif trig['marker']['type']=='ac':
-                xmark = [j for j in range(0,910000,1166*13*ACRateSync.ACIntvsDict[index]['intv'])]
+                xmark = [j for j in range(start,stop,1166*13*ACRateSync.ACIntvsDict[index]['intv'])]
             elif trig['marker']['type']=='ctrl':
                 xmark = ctrl[str(index//CTLBITS)][str(index&(CTLBITS-1))]
 
