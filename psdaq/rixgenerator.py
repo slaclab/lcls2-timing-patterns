@@ -37,6 +37,7 @@ def generate_pattern(p):
             beam_write(name=name,
                        instr=gen.instr, 
                        output=ppath+'d{}'.format(d),
+                       destn=d,
                        allow=destn[b['destn']]['allow'])
 
         #  Add required allow tables to pattern (or generate unique ones)
@@ -142,7 +143,8 @@ def main():
 #Diag0       
         for i in [2,4]:
             def codeset(rates):
-                return {j:f'{dest[i]} {r}Hz' for j,r in enumerate(rates)}
+                name = destn[i]['name']
+                return {j:f'{name} {r}Hz' for j,r in enumerate(rates)}
 #1Hz
             if b['rate']>=1:
                 p['ctrl'][3+i]={'seq':3+i, 'generator':'lookup', 'name':'1/1/1 Hz', 'codes':codeset([1,1,1])}
