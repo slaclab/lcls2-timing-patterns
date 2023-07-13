@@ -31,6 +31,25 @@ def lcm(a,b):
 def myunion(s0,s1):
     return set(s0) | set(s1)
 
+#
+#  PeriodicGenerator : generates requests at fixed intervals
+#    arguments
+#      period : an integer specifying the interval in "marker" occurrences between requests
+#      start  : an integer specifying the offset in "marker" occurrences to the first request
+#      marker : the interval unit used for the "period" and "start" arguments
+#      charge : if supplied, the request is a BeamRequest with that charge value,
+#               else the request is a ControlRequest for bit 0
+#      repeat : number of times to repeat the request.  default (-1) is repeat forever
+#      notify : if True and repeat >= 0, signals software at the end of the requests.
+#
+#      "period" and "start" may also be a list of integers, in which case, requests for multiple
+#               intervals (and offsets) are generated.  ControlRequests are generated for bits 0, 1, ...
+#               corresponding to the index into the "period" list.  If repeat >= 0, the repeat
+#               value applies to the set of requests in the common sub-harmonic of intervals.  For
+#               example, with period values of 6 and 10, the common sub-harmonic (least common multiple)
+#               is an interval of 30.  The repeat value will apply to the interval of 30.
+#
+
 class PeriodicGenerator(object):
     def __init__(self, period, start, charge=None, repeat=-1, notify=False, marker='\"910kH\"'):
         self.charge = charge
