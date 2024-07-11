@@ -10,7 +10,9 @@
 
 import logging
 import sys
+sys.path.append("..")
 import glob
+from epics import PV
 from tools.patternprogrammer import *
 from tools.pv_ca             import *
 from lcls.destn              import *
@@ -216,10 +218,14 @@ def run_mode(program,mode_pv):
     mode_pv.updated()
     mode = mode_pv.pv.get()
     logging.info(f'mode: {mode}')
-    cw_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestart'
-    ac_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestart'
-    bu_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartBurst'
-    mn_path  = os.getenv('IOC_DATA')+'/sioc-sys0-ts01/TpgPatternSetup/GUNRestartExtra'
+    cw_path  = os.getenv('IOC_DATA')+f'/{args.tpg_ioc}/TpgPatternSetup/GUNRestart'
+    ac_path  = os.getenv('IOC_DATA')+f'/{args.tpg_ioc}/TpgPatternSetup/GUNRestart'
+    bu_path  = os.getenv('IOC_DATA')+f'/{args.tpg_ioc}/TpgPatternSetup/GUNRestartBurst'
+    mn_path  = os.getenv('IOC_DATA')+f'/{args.tpg_ioc}/TpgPatternSetup/patterns'
+    print(cw_path)
+    print(ac_path)
+    print(bu_path)
+    print(mn_path)
 
     log_pv   = LogPv(args.pv+':LOG')
     log_pv.append(f'Mode {mode}')
@@ -234,7 +240,7 @@ def run_mode(program,mode_pv):
     log_pv.append(f'Monitoring started...')
 
     chargpv   = Pv(args.pv+':BUNCH_CHARGE')
-    manpattpv = Pv(args.pv+':MANUAL_PATH')
+    manpattPV = PV(args.pv+':MANUAL_PATH')
 
     rate_pv = args.pv+':'+mode+':RATEMODE'
     ratePV = Pv(rate_pv)
@@ -251,6 +257,7 @@ def run_mode(program,mode_pv):
     def cw_load():
         charge = chargpv.get()
         p = get_cw_dst(dst).cw_pattern(cw_path)
+
         logging.info(f'Loading path {p}')
         program.load(p,charge)
         base = p.split('/')[-1]
@@ -274,7 +281,7 @@ def run_mode(program,mode_pv):
         
     def man_load():
         charge = chargpv.get()
-        p = mn_path+'/'+manpattpv.get()
+        p = mn_path+'/'+manpattPV.get(as_string=True)
         logging.info(f'Loading path {p}')
         program.load(p,charge)
         base = p.split('/')[-1]
@@ -339,6 +346,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='pattern pva programming')
     parser.add_argument("--pv",  default='TPG:SYS0:1', help="TPG base pv; e.g. ")
+    parser.add_argument("--tpg-ioc", default='sioc-sys0-ts01', help="Tpg ioc; e.g. ")
     parser.add_argument("--verbose", action='store_true')
     args = parser.parse_args()
 
