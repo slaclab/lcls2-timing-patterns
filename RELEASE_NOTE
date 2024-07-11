@@ -1,3 +1,10 @@
+R1.1.0 R McClanahan (rpm)
+       Some changes have not been properly checked into git on prod.  Amending that now
+       lcls/programmer.py:
+       added sys.path.append(..) for tmux launching
+       added tpg-ioc argument for paths to the patterns
+       manpattPV is now type PV for access to the as_string
+
 R1.1.0 C.B. Mattison (carolina)
        GUN Restart patterns: single destinations patterns, burst patterns
        and scripts to load/apply to TPG used for TPG P selector interface
