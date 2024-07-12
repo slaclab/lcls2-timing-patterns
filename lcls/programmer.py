@@ -17,37 +17,7 @@ import time
 import argparse
 from tools.patternprogrammer import PatternProgrammer
 from tools.pv_ca import Pv
-
-#
-#  Some policies
-#
-#    Just make a whole dictionary to translate rate button names to pattern names
-rate_names = {'0Hz'   :'0 Hz', 
-              '1Hz'   :'1 Hz',
-              '10Hz'  :'10 Hz',
-              '50Hz'  :'50 Hz',
-              '100Hz' :'100 Hz',
-              '200Hz' :'200 Hz',
-              '500Hz' :'500 Hz',
-              '1kHz':'1 kHz',
-              '1.4kHz':'1.4 kHz',
-              '5kHz':'5 kHz',
-              '10kHz' :'10 kHz',
-              '23kHz' :'23 kHz',
-              '33kHz' :'33 kHz',
-              '46kHz' :'46 kHz',
-              '93kHz' :'93 kHz',
-              '464kHz':'464 kHz',
-              '929kHz':'929 kHz',}
-ac_rate_names = {'0Hz'   :'0 Hz', 
-              '1Hz'   :'1 Hz',
-              '10Hz'  :'10 Hz',
-              '30Hz'  :'30 Hz',
-              '60Hz' :'60 Hz',
-              '90Hz' :'90 Hz',
-              '110Hz' :'110 Hz',
-              '119Hz':'119 Hz',
-              '120Hz':'120 Hz',}
+from datetime import datetime
 
 #    Capture a PV update in a local variable
 class MonitoredPv:
@@ -63,21 +33,16 @@ class MonitoredPv:
             return True
         return False
 
-# TODO: change the functionality of this so the pv always has a non NULL value
 class LogPv:
     def __init__(self, name):
-        self.pv = Pv(name)
+        self.pv = PV(name)
         self.msg = []
 
     def append(self, msg):
-        if len(self.msg) > 2:
+        if len(self.msg) > 6:
             self.msg = self.msg[1:]
         self.msg.append(msg)
-        while True:
-            s = '\n'.join(self.msg)
-            if len(s) < 40:
-                break
-            self.msg = self.msg[1:]
+        s = '\n'.join(self.msg)
         self.pv.put(s)
 
 #
@@ -108,7 +73,8 @@ def run_mode(program,mode_pv):
         p = mn_path+'/'+manpattPV.get(as_string=True)
         logging.info(f'Loading path {p}')
         program.load(p,charge)
-        base = p.split('/')[-1]
+        base = p.split('/')[-2] + "/" + p.split('/')[-1] + f" | {datetime.now()}"
+        print(f'base: {base}')
         log_pv.append(f'Loaded {base}')
         
     hbeatpv = Pv(args.pv+':PATT_PROG_HRTBT')
@@ -139,8 +105,6 @@ def run_mode(program,mode_pv):
             logging.debug(f'---mode changed---')
             break
             
-
-            
 def main(args):
     global do_cw_load, do_bu_load, do_apply
 
@@ -162,5 +126,4 @@ if __name__ == '__main__':
     else:
         logging.getLogger().setLevel(logging.INFO)
 
-    #cProfile.run('main(args)')
     main(args)
