@@ -11,11 +11,12 @@
 import logging
 import sys
 sys.path.append("..")
-import glob
 from epics import PV
-from tools.patternprogrammer import *
-from tools.pv_ca             import *
-from lcls.destn              import *
+import os
+import time
+import argparse
+from tools.patternprogrammer import PatternProgrammer
+from tools.pv_ca import Pv
 
 #
 #  Some policies
