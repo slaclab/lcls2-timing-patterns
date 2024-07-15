@@ -53,24 +53,24 @@ def run_mode(program,mode_pv):
     mode_pv.updated()
     mode = mode_pv.pv.get()
     logging.info(f'mode: {mode}')
-    mn_path  = os.getenv('IOC_DATA')+f'/{args.tpg_ioc}/TpgPatternSetup/patterns'
-    print(mn_path)
+    patt_path  = os.getenv('IOC_DATA')+f'/{args.tpg_ioc}/TpgPatternSetup/patterns'
+    print(patt_path)
 
     log_pv   = LogPv(args.pv+':LOG')
     log_pv.append(f'Mode {mode}')
     
-    man_load_pv = MonitoredPv(args.pv+':MANUAL_LOAD' )
+    load_pv = MonitoredPv(args.pv+':PATT_LOAD' )
     apply_pv    = MonitoredPv(args.pv+':APPLY')
 
     #Debug prints
     log_pv.append(f'Monitoring started...')
-
+    
     chargpv   = Pv(args.pv+':BUNCH_CHARGE')
-    manpattPV = PV(args.pv+':MANUAL_PATH')
+    pattPV = PV(args.pv+':PATT_PATH')
         
     def man_load():
         charge = chargpv.get()
-        p = mn_path+'/'+manpattPV.get(as_string=True)
+        p = patt_path+'/'+pattPV.get(as_string=True)
         logging.info(f'Loading path {p}')
         program.load(p,charge)
         base = p.split('/')[-2] + "/" + p.split('/')[-1] + f" | {datetime.now()}"
@@ -81,17 +81,17 @@ def run_mode(program,mode_pv):
 
     logging.info(f'Mode {mode} Ready')
 
-    man_load_pv.updated()
+    load_pv.updated()
     apply_pv  .updated()
 
     hbeat = 0
     while(True):
         for i in range(10):
             time.sleep(0.1)
-            if man_load_pv.updated():
-                logging.info('Manual Load')
+            if load_pv.updated():
+                logging.info('Pattern Load')
                 man_load()
-                logging.info('Manual Load complete')
+                logging.info('Pattern Load complete')
             if apply_pv.updated():
                 logging.info('Apply')
                 program.apply()
