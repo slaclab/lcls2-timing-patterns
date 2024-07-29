@@ -1,3 +1,8 @@
 *~
 *.pyc
 __pycache__
+pysrc/libpyseqsim.so
+pysrc/pyseqsim.pic.o
+pysrc/pyseqsim.so
+src/O.buildroot-2019.08-x86_64/
+src/O.rhel6-x86_64/
