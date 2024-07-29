@@ -1,4 +1,12 @@
-R1.1.0 R McClanahan (rpm)
+R1.3.0 R McClanahan (rpm)
+	added the following built files to gitignore
+	pysrc/libpyseqsim.so
+	pysrc/pyseqsim.pic.o
+	pysrc/pyseqsim.so
+	src/O.buildroot-2019.08-x86_64/
+	src/O.rhel6-x86_64/
+
+R1.2.0 R McClanahan (rpm)
        Some changes have not been properly checked into git on prod.  Amending that now
        lcls/programmer.py:
        added sys.path.append(..) for tmux launching
