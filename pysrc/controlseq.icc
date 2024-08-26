@@ -1,0 +1,242 @@
+#include <stdlib.h>
+
+//
+//  controlseq class methods
+//
+static void      controlseq_dealloc(controlseq* self);
+static PyObject* controlseq_new    (PyTypeObject* type, PyObject* args, PyObject* kwds);
+static int       controlseq_init   (controlseq* self, PyObject* args, PyObject* kwds);
+static PyObject* controlseq_execute(PyObject* self, PyObject* args, PyObject* kwds);
+
+static PyMethodDef controlseq_methods[] = {
+  {"execute"   , (PyCFunction)controlseq_execute, METH_VARARGS|METH_KEYWORDS, "simulate the sequence"},
+  {NULL},
+};
+
+//
+//  Register controlseq members
+//
+static PyMemberDef controlseq_members[] = {
+  {NULL} 
+};
+
+static PyTypeObject controlseq_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "pyseqsim.Controlseq",                /* tp_name */
+    sizeof(controlseq),             /* tp_basicsize */
+    0,                         /* tp_itemsize */
+    (destructor)controlseq_dealloc, /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /*tp_flags*/
+    "pyseqsim Controlseq objects",        /* tp_doc */
+    0,                   /* tp_traverse */
+    0,                   /* tp_clear */
+    0,                   /* tp_richcompare */
+    0,                   /* tp_weaklistoffset */
+    0,                   /* tp_iter */
+    0,                   /* tp_iternext */
+    controlseq_methods,             /* tp_methods */
+    controlseq_members,             /* tp_members */
+    0,                         /* tp_getset */
+    0,                         /* tp_base */
+    0,                         /* tp_dict */
+    0,                         /* tp_descr_get */
+    0,                         /* tp_descr_set */
+    0,                         /* tp_dictoffset */
+    (initproc)controlseq_init,      /* tp_init */
+    0,                         /* tp_alloc */
+    controlseq_new,                 /* tp_new */
+};
+
+//
+//  seqsim class functions
+//
+
+void controlseq_dealloc(controlseq* self)
+{
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+PyObject* controlseq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
+{
+  controlseq* self;
+
+  self = (controlseq*)type->tp_alloc(type,0);
+
+  return (PyObject*)self;
+}
+
+int controlseq_init(controlseq* self_o, PyObject* args, PyObject* kwds)
+{
+  unsigned start  = 0;
+  unsigned stop   = 200;
+  bool     acmode = false;
+
+  while(1) {
+    { const char* kwlist[] = {"start"  ,"stop"  ,"acmode", NULL };
+     if ( MyArg_ParseTupleAndKeywords(args,kwds,"|IIp",kwlist,
+ 	                              &start  ,&stop  ,&acmode) != 0)	
+       break; }
+
+    return -1;
+  }	
+
+  controlseq& self = *reinterpret_cast<controlseq*>(self_o);
+  self.start  = start;
+  self.stop   = stop;
+  self.acmode = acmode;
+
+  return 0;
+}
+
+// instrset is the list of encodings (not Instruction objects)
+PyObject* controlseq_execute(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  controlseq& self = *reinterpret_cast<controlseq*>(self_o);
+
+  int done = self.stop;
+
+  PyObject* seqdict;
+
+  while(1) {
+    { const char* kwlist[] = {"seqdict"  , NULL };
+     if ( MyArg_ParseTupleAndKeywords(args,kwds,"O",kwlist,
+ 	                              &seqdict) != 0)	
+       break; }
+
+    return NULL;
+  }	
+
+  PyObject* req = PyDict_GetItemString(seqdict,"encoding");
+  if (!req || !PyDict_Size(req)) {
+    return Py_None;
+  }
+
+  std::map<unsigned,Engine>    request_engines;
+  std::map<unsigned,int>       slast;
+  std::map<unsigned, InstrSet> request_instr;
+
+  std::map<unsigned,xdata_s> xdata;
+  std::map<unsigned,stats_s> stats;
+
+  PyObject* req_keys = PyDict_Keys(req);
+  stats_s defstats;
+  int n = PyList_Size(req_keys);
+  for(int i=0; i<n; i++) {
+    PyObject* key = PyList_GetItem(req_keys,i);
+    unsigned j    = PyLong_AsLong(key);
+    request_engines[j] = Engine(self.acmode);
+    request_instr  [j] = Instruction::create(PyDict_GetItem(req,key));
+    for(unsigned k=0; k<CTLBITS; k++) {
+      unsigned z = j*CTLBITS+k;
+      stats          [z] = defstats;
+      xdata          [z] = std::vector<unsigned>(0);
+      slast          [z] = -1;
+    }
+  } 
+
+  int gframe = -1;
+  while(gframe < done) {
+    for(std::map<unsigned,Engine>::iterator it=request_engines.begin();
+        it!=request_engines.end(); it++) {
+      unsigned  i        = it->first;
+      Engine&   engine   = it->second;
+      int       frame    = engine.frame;
+      int       request  = engine.request;
+      InstrSet& instrset = request_instr[i];
+
+      while(frame==gframe) {
+        request = engine.request;
+        instrset[engine.instr]->execute(engine);
+
+        if (int(engine.frame) != frame) {
+          for(unsigned j=0; j<CTLBITS; j++) {
+            unsigned z=CTLBITS*i+j;
+            if (request&(1<<j)) {
+              stats[z].sum++;
+              if (stats[z].last>=0) {
+                int diff = frame-slast[z];
+                if ((diff < stats[z].min) or (stats[z].min<0))
+                  stats[z].min = diff;
+                if (diff > stats[z].max)
+                  stats[z].max = diff;
+              }
+              slast[z] = frame;
+              stats[z].last = frame;
+              if (stats[z].first<0)
+                stats[z].first = frame;
+              if (frame >= int(self.start) and frame < int(self.stop))
+                xdata[z].push_back(frame);
+            }
+          }
+          if (engine.done) {
+            engine.request = 0;
+            break;
+          }
+          frame   = engine.frame;
+          request = engine.request;
+        }
+      }
+    }
+    gframe++;
+  }
+
+  char tmp[8];
+
+  PyObject* pxdata = PyDict_New();
+  for(unsigned i=0; i<MAXCTL; i++) {
+    if (xdata.find(i*CTLBITS)==xdata.end())
+      continue;
+    PyObject* d = PyDict_New();
+    for(unsigned j=0; j<CTLBITS; j++) {
+      unsigned z=CTLBITS*i+j;
+      PyObject* o = PyList_New(xdata[z].size());
+      for(unsigned k=0; k<xdata[z].size(); k++)
+        PyList_SET_ITEM(o,k,PyLong_FromLong(xdata[z][k]));
+      sprintf(tmp,"%d",j);
+      PyDict_SetItemString(d,tmp,o);
+    }
+    sprintf(tmp,"%d",i);
+    PyDict_SetItemString(pxdata,tmp,d);
+  }
+
+
+  PyObject* pstats = PyDict_New();
+  for(unsigned i=0; i<MAXCTL; i++) {
+    if (stats.find(i*CTLBITS)==stats.end())
+      continue;
+    PyObject* d = PyDict_New();
+    for(unsigned j=0; j<CTLBITS; j++) {
+      unsigned z=CTLBITS*i+j;
+      PyObject* o = PyDict_New();
+      PyDict_SetItemString(o,"sum"  ,PyLong_FromLong(stats[z].sum));
+      PyDict_SetItemString(o,"min"  ,PyLong_FromLong(stats[z].min));
+      PyDict_SetItemString(o,"max"  ,PyLong_FromLong(stats[z].max));
+      PyDict_SetItemString(o,"first",PyLong_FromLong(stats[z].first));
+      PyDict_SetItemString(o,"last" ,PyLong_FromLong(stats[z].last));
+      sprintf(tmp,"%d",j);
+      PyDict_SetItemString(d,tmp,o);
+    }
+    sprintf(tmp,"%d",i);
+    PyDict_SetItemString(pstats,tmp,d);
+  }
+
+  PyObject* t = PyTuple_New(2);
+  PyTuple_SET_ITEM(t,0,pxdata);
+  PyTuple_SET_ITEM(t,1,pstats);
+
+  return t;
+}

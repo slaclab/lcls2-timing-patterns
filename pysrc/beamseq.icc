@@ -1,0 +1,379 @@
+#include "seq.icc"
+
+#include <deque>
+
+//
+//  beamseq class methods
+//
+static void      beamseq_dealloc(beamseq* self);
+static PyObject* beamseq_new    (PyTypeObject* type, PyObject* args, PyObject* kwds);
+static int       beamseq_init   (beamseq* self, PyObject* args, PyObject* kwds);
+static PyObject* beamseq_execute(PyObject* self, PyObject* args, PyObject* kwds);
+static PyObject* beamseq_power  (PyObject* self, PyObject* args, PyObject* kwds);
+
+static PyMethodDef beamseq_methods[] = {
+  {"execute"   , (PyCFunction)beamseq_execute, METH_VARARGS|METH_KEYWORDS, "simulate the sequence"},
+  {"power"     , (PyCFunction)beamseq_power  , METH_VARARGS|METH_KEYWORDS, "calculate power"},
+  {NULL},
+};
+
+//
+//  Register beamseq members
+//
+static PyMemberDef beamseq_members[] = {
+  {NULL} 
+};
+
+static PyTypeObject beamseq_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "pyseqsim.Beamseq",                /* tp_name */
+    sizeof(beamseq),             /* tp_basicsize */
+    0,                         /* tp_itemsize */
+    (destructor)beamseq_dealloc, /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,        /*tp_flags*/
+    "pyseqsim Beamseq objects",        /* tp_doc */
+    0,                   /* tp_traverse */
+    0,                   /* tp_clear */
+    0,                   /* tp_richcompare */
+    0,                   /* tp_weaklistoffset */
+    0,                   /* tp_iter */
+    0,                   /* tp_iternext */
+    beamseq_methods,             /* tp_methods */
+    beamseq_members,             /* tp_members */
+    0,                         /* tp_getset */
+    0,                         /* tp_base */
+    0,                         /* tp_dict */
+    0,                         /* tp_descr_get */
+    0,                         /* tp_descr_set */
+    0,                         /* tp_dictoffset */
+    (initproc)beamseq_init,      /* tp_init */
+    0,                         /* tp_alloc */
+    beamseq_new,                 /* tp_new */
+};
+
+//
+//  seqsim class functions
+//
+
+void beamseq_dealloc(beamseq* self)
+{
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+PyObject* beamseq_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
+{
+  beamseq* self;
+
+  self = (beamseq*)type->tp_alloc(type,0);
+
+  return (PyObject*)self;
+}
+
+int beamseq_init(beamseq* self_o, PyObject* args, PyObject* kwds)
+{
+  unsigned start  = 0;
+  unsigned stop   = 200;
+  bool     acmode = false;
+
+  while(1) {
+    { const char* kwlist[] = {"start"  ,"stop"  ,"acmode", NULL };
+     if ( MyArg_ParseTupleAndKeywords(args,kwds,"|IIp",kwlist,
+ 	                              &start  ,&stop  ,&acmode) != 0)	
+       break; }
+
+    return -1;
+  }	
+
+  beamseq& self = *reinterpret_cast<beamseq*>(self_o);
+  self.start  = start;
+  self.stop   = stop;
+  self.acmode = acmode;
+
+  return 0;
+}
+
+// instrset is the list of encodings (not Instruction objects)
+PyObject* beamseq_execute(PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  beamseq& self = *reinterpret_cast<beamseq*>(self_o);
+
+  int      done = self.stop;
+  PyObject* seqdict;
+  
+  while(1) {
+    { const char* kwlist[] = {"seqdict", NULL };
+     if ( MyArg_ParseTupleAndKeywords(args,kwds,"O",kwlist,
+ 	                              &seqdict) != 0)	
+       break; }
+
+    return NULL;
+  }	
+
+  PyObject* req = PyDict_GetItemString(seqdict,"encoding");
+  if (!req || !PyDict_Size(req)) {
+    return Py_None;
+  }
+
+  std::vector<unsigned> slast(16);
+
+  std::map< unsigned, Engine > request_engines;
+  std::map<unsigned, InstrSet> request_instr;
+  std::map<unsigned,stats_s>   stats;
+  std::vector<xy_s>            xy;
+  PyObject* req_keys = PyDict_Keys(req);
+  int n = PyList_Size(req_keys);
+  stats_s defstats;
+  for(int i=0; i<n; i++) {
+    PyObject* key = PyList_GetItem(req_keys,i);
+    unsigned j    = PyLong_AsLong(key);
+    request_engines[j] = Engine(self.acmode);
+    request_instr  [j] = Instruction::create(PyDict_GetItem(req,key));
+    stats          [j] = defstats;
+  } 
+
+  std::map<unsigned, unsigned> allow_mask;
+  PyObject* allow_m  = PyDict_GetItemString(seqdict,"allowmask");
+  { PyObject* keys = PyDict_Keys(allow_m);
+    for(int i=0; i<PyList_Size(keys); i++) {
+      PyObject* key = PyList_GetItem(keys,i);
+      unsigned j    = PyLong_AsLong(key);
+      allow_mask     [j] = PyLong_AsLong(PyDict_GetItem(allow_m,key));
+    } }
+
+  PyObject* all = PyDict_GetItemString(seqdict,"allowenc");
+  std::map< unsigned, Engine > allow_engines;
+  std::map<unsigned, InstrSet> allow_instr;
+  PyObject* all_keys = PyDict_Keys(all);
+  for(int i=0; i<PyList_Size(all_keys); i++) {
+    PyObject* key = PyList_GetItem(all_keys,i);
+    unsigned j = PyLong_AsLong(key);
+    allow_engines[j] = Engine(self.acmode);
+    allow_instr  [j] = Instruction::create(PyDict_GetItem(all,key));
+  }
+
+  int gframe = -1;
+  while(gframe < done) {
+    int requests = 0;
+    int allow    = 0;
+    int arequest = -1;
+
+    //  Form allow result first
+    for(std::map<unsigned,Engine>::iterator it=allow_engines.begin();
+        it!=allow_engines.end(); ++it) {
+      unsigned i     = it->first;
+      Engine& engine = it->second;
+      int frame      = engine.frame;
+      int request    = engine.request;
+      InstrSet& iset = allow_instr[i];
+
+      while(frame == gframe) {
+        request = engine.request;
+        iset[engine.instr]->execute(engine);
+
+        if (int(engine.frame) != frame) {
+          if (request)
+            allow |= (1<<i);
+
+          frame   = engine.frame;
+          request = engine.request;
+
+          if (engine.done) {
+            engine.request = 0;
+            break;
+          }
+        }
+      }
+    }
+
+    // Form request and apply allow table
+    for(std::map<unsigned,Engine>::iterator it=request_engines.begin();
+        it!=request_engines.end(); ++it) {
+      unsigned i     = it->first;
+      Engine& engine = it->second;
+      int frame      = engine.frame;
+      int request    = engine.request;
+      InstrSet& iset = request_instr[i];
+      unsigned amask = allow_mask[i];
+
+      while(frame==gframe) {
+        request = engine.request;
+        iset[engine.instr]->execute(engine);
+
+        if (int(engine.frame) != frame) {
+          if (request) {
+            requests |= (1<<i);
+
+            if ((allow&amask)==amask)
+              if (int(i)>arequest)
+                arequest = i;
+          }
+
+          if (engine.done) {
+            engine.request = 0;
+            break;
+          }
+
+          frame   = engine.frame;
+          request = engine.request;
+        }
+      }
+    }
+
+    //  This is the arbitrated result
+    if (arequest>=0 && gframe >= int(self.start) && gframe < int(self.stop)) {
+      xy.push_back(xy_s(gframe,arequest));
+
+      unsigned i=arequest;
+      stats[i].sum++;
+      if (stats[i].last>=0) {
+        int diff = gframe-slast[i];
+        if ((diff < stats[i].min) || (stats[i].min<0))
+          stats[i].min=diff;
+        if (diff > stats[i].max)
+          stats[i].max=diff;
+      }
+
+      slast[i] = gframe;
+      stats[i].last=gframe;
+      if (stats[i].first<0)
+        stats[i].first=gframe;
+    }
+
+    gframe++;
+  }
+
+  PyObject* x = PyList_New(xy.size());
+  PyObject* y = PyList_New(xy.size());
+  for(unsigned i=0; i<xy.size(); i++) {
+    PyList_SET_ITEM(x,i,PyLong_FromLong(xy[i].x));
+    PyList_SET_ITEM(y,i,PyLong_FromLong(xy[i].y));
+  }
+
+  PyObject* s = PyDict_New();
+  for(std::map<unsigned,stats_s>::iterator it=stats.begin();
+      it!=stats.end(); it++) {
+    PyObject* d = PyDict_New();
+    PyDict_SetItemString(d,"sum"  ,PyLong_FromLong(it->second.sum));
+    PyDict_SetItemString(d,"min"  ,PyLong_FromLong(it->second.min));
+    PyDict_SetItemString(d,"max"  ,PyLong_FromLong(it->second.max));
+    PyDict_SetItemString(d,"first",PyLong_FromLong(it->second.first));
+    PyDict_SetItemString(d,"last" ,PyLong_FromLong(it->second.last));
+    PyDict_SetItem(s,PyLong_FromLong(it->first),d);
+  }
+
+  PyObject* t = PyTuple_New(3);
+  PyTuple_SET_ITEM(t,0,x);
+  PyTuple_SET_ITEM(t,1,y);
+  PyTuple_SET_ITEM(t,2,s);
+
+  return t;
+}
+
+// instrset is the list of encodings (not Instruction objects)
+static PyObject* beamseq_power  (PyObject* self_o, PyObject* args, PyObject* kwds)
+{
+  beamseq& self = *reinterpret_cast<beamseq*>(self_o);
+  int done = self.stop;
+
+  PyObject* instrset;
+  PyObject* qwin;
+
+  while(1) {
+    { const char* kwlist[] = {"encoding", "qwin", NULL };
+     if ( MyArg_ParseTupleAndKeywords(args,kwds,"OO|p",kwlist,
+ 	                              &instrset, &qwin) != 0)	
+       break; }
+
+    return NULL;
+  }	
+
+  unsigned spacing(910000);
+  std::vector<unsigned> qvec;
+  std::map<unsigned,unsigned> result;
+  std::map<unsigned,std::deque<unsigned> > frames;
+
+  InstrSet instr = Instruction::create(instrset);
+
+  int n = PySet_Size(qwin);
+  for(int i=0; i<n; i++) {
+    PyObject* o = PySet_Pop(qwin);
+    if (o == Py_None)
+      continue;
+    unsigned q = PyLong_AsLong(o);
+    qvec.push_back(q);
+    result[q] = 0;
+    frames[q] = std::deque<unsigned>();
+  }
+
+  Engine request_engine(self.acmode);
+
+  int slast  = -1;  
+  int gframe = -1;
+  while (gframe < done) {
+
+    Engine&   engine = request_engine;
+    int       frame  = engine.frame;
+    unsigned request = engine.request;
+
+    while (frame == gframe) {
+      request = engine.request;
+      instr[engine.instr]->execute(engine);
+      
+      if (int(engine.frame) != frame) {
+        if (request) {
+          if (slast>=0) {
+            unsigned s = frame - slast;
+            if (s < spacing)
+              spacing = s;
+          }
+	  slast = frame;
+
+	  for(std::vector<unsigned>::iterator it=qvec.begin();
+              it!=qvec.end(); it++) {
+            int cut = frame - *it;
+            frames[*it].push_front(frame);
+            while(1) {
+              unsigned v = frames[*it].back();
+              if (int(v)>cut)
+                break;
+	      else
+                frames[*it].pop_back();
+            }
+            if (frames[*it].size() > result[*it])
+              result[*it] = frames[*it].size();
+          }
+        }
+        if (engine.done) {
+          engine.request = 0;
+          break;
+        }
+        frame   = engine.frame;
+        request = engine.request;
+      }
+    }
+    gframe++;
+  }
+
+  PyObject* o = PyDict_New();
+  PyDict_SetItemString(o,"spacing",PyLong_FromLong(spacing));
+  for(std::map<unsigned,unsigned>::iterator it=result.begin();
+      it!=result.end(); it++)
+    PyDict_SetItem(o,PyLong_FromLong(it->first),PyLong_FromLong(it->second));
+
+  return o;
+}
+

@@ -1,0 +1,26 @@
+LCLS-specializations
+
+Destinations/Allow:
+destn[0] = {'name':'Mechanical Laser Shutter','allow':[0]}
+destn[1] = {'name':'Yag01b'                  ,'allow':[1]}
+destn[2] = {'name':'Laser Heater Screen'     ,'allow':[2]}
+destn[3] = {'name':'Diag Line 0'             ,'allow':[3]}
+destn[4] = {'name':'DumpBSY'                 ,'allow':[4]}
+destn[5] = {'name':'TDUND'                   ,'allow':[4,5]}
+destn[6] = {'name':'TDUNDS'                  ,'allow':[4,6]}
+destn[7] = {'name':'HXR Dump'                ,'allow':[4,5,7]}
+destn[8] = {'name':'SXR Dump'                ,'allow':[4,6,8]}
+( S30XL/LESA to come )
+
+PC:
+pcdef = [ (1,0,0),                 # PC0: no beam allowed
+          (300,91000,91000),       # PC1: 300pC per 0.1sec, max 10Hz bunch rate
+          (300*910000,910000,1) ]  # PC2: 300nC per second, no max rate
+
+Control sequence allotment:
+[0] : fixed rate additions
+  .0 : 1/2 Full Rate
+  .1 : 1/5 Full Rate
+  .2 : 1/10 Full Rate
+  .3 : 1/20 Full Rate
+[1] : kicker magnet standby rates
