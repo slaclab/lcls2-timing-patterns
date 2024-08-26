@@ -1,0 +1,98 @@
+Repository for TPG timing pattern data.  Includes tools for simulating, validating, and programming timing patterns.
+
+patterns: Directory of available patterns.  Includes
+
+  description.txt           - textual description of pattern
+  			    - it might be sufficient to just list the generating python functions 
+			      and input parameters
+  allow_d[0-13]_[0-13].py   - allow sequence python per destination
+  allow_d[0-13]_[0-13].json - dictionary of description, encoding, and maxQ for each beam class
+  			    - The maxQ array is used for re-classifying an allow sequence when
+			      the bunch charge is changed.  In practice, this simply means
+			      changing the beam class value associated with the sequence in 
+			      the allow table.
+  d[0-13].py                - destination beam requests python
+  d[0-13].json              - dictionary of description, encoding, and title
+  c[0-17].py                - control requests python
+  c[0-17].json              - dictionary of description, encoding, and title
+  ctrl.json                 - dictionary of control requests by bucket
+  ctrl_stats.json           - statistics of { rate, first/last bucket, min/max spacing } per sequence bit
+  dest.json                 - dictionary of beam requests by bucket per beam class combo
+  dest_stats.json           - statistics of { rate, first/last bucket, min/max spacing } per beam class combo
+  
+
+pcdef.py - python dictionary of power class defining parameters
+
+tools: python utilities for generation, simulation, execution, validation
+
+  generation:
+
+  simulation:
+    individual:
+      calculate statistics for validation { 1sec sum, min spacing, max spacing }
+
+    pattern:
+      read pattern directory and simulate across all inputs
+      outputs are { beam requests, PC0[Allowed,Generated], PC1[], ... } per destination
+        gets written to "pattern/validation.dat"
+        plots for timeslot range, PC settings per destination
+    visualization:
+      inputs are { timeslot mode [AC/Fixed], timeslot range }
+
+  execution:
+    GUI tells HLA to execute pattern which includes entire subdirectory of sequences
+    maps to facility modes (destn)
+    given charge, determine PC of allow table sequences
+      program allow table [ register array of sub-sequence start addr and pattern PC,
+      	      	            indexed by MPS asserted PC ]
+      requires min separation and max bunches within PC window for each allow sequence
+      (from simulation)
+
+  validation:
+    other IOC executing on special node takes validation.dat and confirms for each
+      destination when PC does not change
+    errors can be trapped and archived
+      { timestamp, pulseid, fixed/ac rates, beam request, mps status }
+
+  scripts:
+    patterngenerator.py --output <dir>
+      Generates destination programming sequences for patterns described within
+      a dictionary in patterngenerator.py.  Products are placed in <dir>/<pattern_name>/.
+
+    patternprogrammer.py --pattern <pattern subdirectory> --pv <TPG PV base>
+      Programs all sequences for the pattern and executes
+
+    seqplot.py --start <bucket> --stop <bucket> <sequence.py>
+      PyQt plot of (trigger bits vs) buckets populated
+
+    seqprogram.py <sequence.py> <TPG sequence engine PV>
+      Programs an individual sequence engine
+
+    seqsim.py --pattern <pattern subdirectory> --start <bucket> --stop <bucket> --mode <CW/AC>
+      Simulate 
+
+    patternbrowser.py --path <dir>
+      GUI for viewing statistics and display of destination, control by bucket
+      for any setting of MPS beam classes
+
+    patterntester.py --path <dir> --mps_port <port> ...
+      GUI for programming a pattern into TPG and comparing live rates/sum with
+      simulated pattern results for any setting of MPS beam classes.  Depends
+      upon mpssim_tst to simulate MPS input (see below).
+
+    patterntest_auto.py --path <dir> --mps_port <port> ...
+      Command line utility to loop through all patterns and MPS class
+      combinations for validating live rates/sums against simulated results.
+
+Note that the last two scripts depend upon mpssim_tst running on the machine that hosts the TPG IOC;
+e.g. cpu-b084-pm01 in the B84 teststand.  The mpssim_tst executable is part of the tpg package and should
+be launched like so...
+
+   ssh laci@cpu-b084-pm01
+   /afs/slac/g/lcls/package/timing/tpg/R1.4.1/buildroot-2019.08-x86_64/bin/mpssim_tst -a 10.0.3.102 -p 2500 -v
+
+In this case, the mps_port command-line parameters should use the value 2500.
+
+
+The python code now depends upon a C library built with the 'make' command.  The 'make' command must be executed
+prior to sourcing the env.sh script.  The build process is incompatible with the gcc version referenced by env.sh.
