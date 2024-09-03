@@ -12,13 +12,14 @@ import logging
 import sys
 
 sys.path.append("..")
-from epics import PV
+from epics import PV, caput
 import os
 import time
 import argparse
 from tools.patternprogrammer import PatternProgrammer
 from tools.pv_ca import Pv
 from datetime import datetime
+import ScPatternSelect
 
 
 #    Capture a PV update in a local variable
@@ -75,14 +76,81 @@ def run_mode(program, mode_pv):
     chargpv = Pv(args.pv + ":BUNCH_CHARGE")
     pattPV = PV(args.pv + ":MANUAL_PATH")
 
+    patt_sel = ScPatternSelect.ScPatternSelect("SYS0", "1", "sioc-sys0-ts01")
+
+    loadedPV = PV(patt_sel.globals.get_pattern_loaded_pv())
+    appliedPV = PV(patt_sel.globals.get_pattern_running_pv())
+
     def man_load():
         charge = chargpv.get()
-        p = patt_path + "/" + pattPV.get(as_string=True)
+        pattern_to_load = pattPV.get(as_string=True)
+        p = patt_path + "/" + pattern_to_load
         logging.info(f"Loading path {p}")
         program.load(p, charge)
         base = p.split("/")[-2] + "/" + p.split("/")[-1] + f" | {datetime.now()}"
         print(f"base: {base}")
         log_pv.append(f"Loaded {base}")
+        loadedPV.put(pattern_to_load)
+        if not patt_sel.get_is_patt_table_available():
+            print("man_load not able to use nttable")
+        if patt_sel.get_is_patt_table_available():
+            print("man_load can us the nttable")
+        return pattern_to_load
+
+    def write_to_data_pvs(loaded_pattern):
+        """
+        Write to the data pvs that
+        """
+        appliedPV.put(loaded_pattern)
+        patt_data = patt_sel.get_pattern_data(loaded_pattern)
+        for dest in patt_sel.globals.DEST_NAMES:
+            
+
+            # write to time source
+            dest_time_source = patt_data[f"{dest}{patt_sel.globals.TSOURCE_SFX}"]
+            print(dest_time_source)
+            if dest_time_source.__contains__("FR"):
+                dest_time_source = 0
+            elif dest_time_source.__contains__("AC"):
+                dest_time_source = 1
+            elif dest_time_source.__contains__("B"):
+                dest_time_source = 2
+            else:
+                dest_time_source = 0
+            
+            # write to offset
+            dest_offset = patt_data[f"{dest}{patt_sel.globals.OFFSET_SFX}"]
+            write_to_offset(dest, dest_offset)
+
+            # write to timeslot
+            write_to_ts(dest, dest_offset)
+            
+            print(dest_time_source)
+            caput(patt_sel.globals.get_timeing_source_pv(dest), dest_time_source)
+
+    def write_to_offset(dest, dest_offset):
+        """
+        Writes to the offset if the dest is fixed rate
+        """
+        if dest_offset.__contains__("off"):
+            dest_offset = dest_offset.split(" ")
+            dest_offset = int(dest_offset[1])
+        else:
+            dest_offset = 0
+        caput(patt_sel.globals.get_offset_pv(dest), dest_offset)
+
+    def write_to_ts(dest, dest_offset):
+        """
+        Writes to the time slot if the dest is AC
+        """
+        if not dest_offset.__contains__("TS"):
+            caput(patt_sel.globals.get_dest_timeslot_pv(dest), "None")
+            caput(patt_sel.globals.get_dest_timeslot_mask_pv(dest), 0)
+            return
+        timeslot = int(dest_offset.replace("TS", ""))
+        caput(patt_sel.globals.get_dest_timeslot_pv(dest), dest_offset)
+        timeslotmask = 1 << (timeslot - 1)
+        caput(patt_sel.globals.get_dest_timeslot_mask_pv(dest), timeslotmask)
 
     hbeatpv = Pv(args.pv + ":PATT_PROG_HRTBT")
 
@@ -93,14 +161,18 @@ def run_mode(program, mode_pv):
 
     hbeat = 0
     while True:
+        # if not is_patt_sel_available:
+        # is_patt_sel_available = connect_to_pattern_table()
+        # print("checking for pattern table")
         for i in range(10):
             time.sleep(0.1)
             if load_pv.updated():
                 logging.info("Pattern Load")
-                man_load()
+                loaded_pattern = man_load()
                 logging.info("Pattern Load complete")
             if apply_pv.updated():
                 logging.info("Apply")
+                write_to_data_pvs(loaded_pattern)
                 program.apply()
                 logging.info("Apply complete")
 
