@@ -1,9 +1,12 @@
+<<<<<<< HEAD
 R1.3.1 R McClanahan (rpm)
 	lcls/programmer.py
 	added functionality for writing to meta data pvs that hold the meta data for the 
 	currently running pattern.  
 	Introduced a dependency on the TPG:SYS0:1:PATTERNS PV being live 
 
+=======
+>>>>>>> fa12a0c548cb1a956c0b1a2c7bbe2b68da11458a
 R1.3.0 R McClanahan (rpm)
 	added the following built files to gitignore
 	pysrc/libpyseqsim.so
