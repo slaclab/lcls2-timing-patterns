@@ -92,13 +92,20 @@ def run_mode(program, mode_pv):
         log_pv.append(f"Loaded {base}")
         loadedPV.put(pattern_to_load)
         if not patt_sel.get_is_patt_table_available():
+<<<<<<< HEAD
             logging.info("man_load not able to use nttable")
         if patt_sel.get_is_patt_table_available():
             logging.info("man_load can us the nttable")
+=======
+            print("man_load not able to use nttable")
+        if patt_sel.get_is_patt_table_available():
+            print("man_load can us the nttable")
+>>>>>>> c8eca0920238d2dbbe7644073c294a60f91e3dc6
         return pattern_to_load
 
     def write_to_data_pvs(loaded_pattern):
         """
+<<<<<<< HEAD
         Write to the meta data pvs that hold the meta data for the currently running pattern
         """
         appliedPV.put(loaded_pattern)
@@ -131,6 +138,36 @@ def run_mode(program, mode_pv):
         else:
             dest_time_source = 0
         caput(patt_sel.globals.get_timeing_source_pv(dest), dest_time_source)
+=======
+        Write to the data pvs that
+        """
+        appliedPV.put(loaded_pattern)
+        patt_data = patt_sel.get_pattern_data(loaded_pattern)
+        for dest in patt_sel.globals.DEST_NAMES:
+            
+
+            # write to time source
+            dest_time_source = patt_data[f"{dest}{patt_sel.globals.TSOURCE_SFX}"]
+            print(dest_time_source)
+            if dest_time_source.__contains__("FR"):
+                dest_time_source = 0
+            elif dest_time_source.__contains__("AC"):
+                dest_time_source = 1
+            elif dest_time_source.__contains__("B"):
+                dest_time_source = 2
+            else:
+                dest_time_source = 0
+            
+            # write to offset
+            dest_offset = patt_data[f"{dest}{patt_sel.globals.OFFSET_SFX}"]
+            write_to_offset(dest, dest_offset)
+
+            # write to timeslot
+            write_to_ts(dest, dest_offset)
+            
+            print(dest_time_source)
+            caput(patt_sel.globals.get_timeing_source_pv(dest), dest_time_source)
+>>>>>>> c8eca0920238d2dbbe7644073c294a60f91e3dc6
 
     def write_to_offset(dest, dest_offset):
         """
@@ -143,7 +180,11 @@ def run_mode(program, mode_pv):
             dest_offset = 0
         caput(patt_sel.globals.get_offset_pv(dest), dest_offset)
 
+<<<<<<< HEAD
     def write_to_ts(dest, dest_offset, dest_rate):
+=======
+    def write_to_ts(dest, dest_offset):
+>>>>>>> c8eca0920238d2dbbe7644073c294a60f91e3dc6
         """
         Writes to the time slot if the dest is AC
         """
@@ -151,6 +192,7 @@ def run_mode(program, mode_pv):
             caput(patt_sel.globals.get_dest_timeslot_pv(dest), "None")
             caput(patt_sel.globals.get_dest_timeslot_mask_pv(dest), 0)
             return
+<<<<<<< HEAD
         timeslot_data = determin_ts(dest_offset, dest_rate)
         caput(patt_sel.globals.get_dest_timeslot_pv(dest), timeslot_data[0])
         caput(patt_sel.globals.get_dest_timeslot_mask_pv(dest), timeslot_data[1])
@@ -184,6 +226,12 @@ def run_mode(program, mode_pv):
 
         return timeslot_data
 
+=======
+        timeslot = int(dest_offset.replace("TS", ""))
+        caput(patt_sel.globals.get_dest_timeslot_pv(dest), dest_offset)
+        timeslotmask = 1 << (timeslot - 1)
+        caput(patt_sel.globals.get_dest_timeslot_mask_pv(dest), timeslotmask)
+>>>>>>> c8eca0920238d2dbbe7644073c294a60f91e3dc6
 
     hbeatpv = Pv(args.pv + ":PATT_PROG_HRTBT")
 
@@ -194,6 +242,9 @@ def run_mode(program, mode_pv):
 
     hbeat = 0
     while True:
+        # if not is_patt_sel_available:
+        # is_patt_sel_available = connect_to_pattern_table()
+        # print("checking for pattern table")
         for i in range(10):
             time.sleep(0.1)
             if load_pv.updated():
